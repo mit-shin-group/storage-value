@@ -69,17 +69,95 @@ using Parameters, JuMP, Gurobi, DataFrames
      15,
      10,
       5]
+  xsea::Vector{Float64} = [
+    74.000,
+    74.000,
+    74.000,
+    74.000,
+    74.000,
+    74.000,
+    74.000,
+    74.000,
+    74.000,
+    74.000,
+    74.000,
+    74.000,
+    74.000,
+    74.000,
+    74.000,
+    74.000,
+    74.000,
+    74.000,
+    38.000,
+    38.000,
+    38.000,
+    38.000,
+    38.000,
+    38.000,
+    38.000,
+    38.000,
+    38.000,
+    38.000,
+     0.000,
+     0.000,
+     0.000,
+     0.000]
+  xseamin::Float64 = 70.
+  Lbat::Int64 = 20
+  pbat::Vector{Float64} = [
+    12.00,
+    11.68,
+    11.35,
+    11.03,
+    10.71,
+    10.39,
+    10.06,
+     9.74,
+     9.42,
+     9.10,
+     8.77,
+     8.45,
+     8.13,
+     7.42,
+     6.74,
+     6.09,
+     5.47,
+     4.89,
+     4.34,
+     3.82,
+     3.33,
+     2.87,
+     2.45,
+     2.06,
+     1.70,
+     1.38,
+     1.08,
+     0.82,
+     0.59,
+     0.40,
+     0.23,
+     0.10]
 end
 
 function build_model(data::Data)
-  @unpack K, x̅, ℓ, c = data
+  @unpack K, x̅, ℓ, c, xsea, xseamin, Lbat, pbat = data
+  xbatmax = 100
+  xbatmin = 1
   PM = Model(Gurobi.Optimizer)
   # add variables
   @variable(PM, z[K], Bin)
+  @variable(PM, zbat[K], Bin)
+  @variable(PM, xbat[K] >= 0)
   # constraints
-  @constraint(PM, [k in K], x̅ * sum(z[l] for l = K[begin]:k) - ℓ[k - K[begin] + 1] >= 0)
+  # - peak power
+  @constraint(PM, [k in K], x̅ * sum(z[l] for l = K[begin]:k) + sum(xbat[l] for l = max(K[begin], k - Lbat + 1) : k) - ℓ[k - K[begin] + 1] >= 0)
+  # - subsea connection
+  @constraint(PM, [k in K], x̅ * sum(z[l] for l = K[begin]:k) + xsea[k - K[begin] + 1] >= xseamin)
+  # - minimum battery investment
+  @constraint(PM, [k in K], xbat[k] <= zbat[k] * xbatmax)
+  @constraint(PM, [k in K], xbat[k] >= zbat[k] * xbatmin)
   # objective function
-  @objective(PM, Min, sum(z .* c))
+  @objective(PM, Min, sum(z .* c .+ xbat .* pbat))
   # return
   return PM
 end
@@ -91,12 +169,17 @@ function solve_model(data::Data = Data())
 end
 
 function analyze_solution(PM, data::Data = Data())
-  @unpack K, ℓ, c, x̅ = data
+  @unpack K, ℓ, c, x̅, xsea, pbat, Lbat = data
   z = Array(value.(PM[:z]))
+  xbat = Array(value.(PM[:xbat]))
+  xbatcum = [sum(xbat[l - K[begin] + 1] for l = max(K[begin], k - Lbat + 1) : k) for k in K]
   results = DataFrame(year=collect(K), 
                       z=z,
-                      margin= x̅ * cumsum(z) .- ℓ,
-                      cumcost = cumsum(z .* c)
+                      xbat = xbat,
+                      margin= x̅ * cumsum(z) .+ xbatcum .- ℓ,
+                      cumcost = cumsum(z .* c .+ xbat .* pbat),
+                      xsea = x̅ * cumsum(z) .+ xsea,
+                      xbatcum = xbatcum
                       )
   return results
 end
