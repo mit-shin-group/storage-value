@@ -33,6 +33,7 @@ function build_JP(; case_data::CaseData = CaseData())
     # -- operational
     @constraint(JP, [n = 1:N, k = 1:K], xc[n,k] - xd[n,k] <= x̄b0[n] + sum( xb[i] for i in n̲(n, Nb):n ))
     @constraint(JP, [n = 1:N, k = 1:K], xc[n,k] - xd[n,k] >= -x̄b0[n] - sum( xb[i] for i in n̲(n, Nb):n ))
+    @constraint(JP, [n = 1:N], y0[n] <= Ts * (x̄b0[n] + sum( xb[i] for i in n̲(n, Nb):n )))
     @constraint(JP, [n = 1:N, k = 1:K], y0[n] + Δt * sum( ηc * xc[n,l] - xd[n,l]/ηd for l = 1:k) <= Ts * (x̄b0[n] + sum( xb[i] for i in n̲(n, Nb):n )) )
     @constraint(JP, [n = 1:N, k = 1:K-1], y0[n] + Δt * sum( ηc * xc[n,l] - xd[n,l]/ηd for l = 1:k) >= 0.)
     @constraint(JP, [n = 1:N], sum( ηc * xc[n,l] - xd[n,l]/ηd for l = 1:K) >= 0)
