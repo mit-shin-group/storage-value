@@ -10,7 +10,7 @@ case_data = CaseData(
     # - value of lost load ($/MWh)
     p̄ = 2500.,
     # - number of peak load days per year (-)
-    T = 15. * ones(26),
+    T = 30. * ones(26),
     # - peak load day for each year (MW), rows years, columns hours
     ℓ = [
         39.051	39.051	35.968	33.913	32.885	32.885	32.885	36.996	42.134	46.245	47.273	48.300	50.356	51.383	52.411	54.466	55.494	58.577	58.577	56.522	54.466	52.411	49.328	46.245;
@@ -56,8 +56,8 @@ case_data = CaseData(
     # - existing battery capacity in each year (MW)
     x̄b0 = [6.000,	6.000,	6.000,	6.000,	6.000,	6.000,	6.000,	6.000,	6.000,	6.000,	6.000,	6.000,	6.000,	6.000,	6.000,	0.000,	0.000,	0.000,	0.000,	0.000,	0.000,	0.000,	0.000,	0.000,	0.000,	0.000
     ],
-    # - prorated installation cost in each year ($/MW)
-    pb = [5.673,	5.007,	4.419,	3.900,	3.442,	3.038,	2.682,	2.248,	1.880,	1.567,	1.302,	1.077,	0.887,	0.727,	0.592,	0.479,	0.385,	0.306,	0.240,	0.185,	0.140,	0.103,	0.073,	0.048,	0.028,	0.013
+    # - prorated installation cost in each year (million $/MW)
+    pb = 1e6 * [5.673,	5.007,	4.419,	3.900,	3.442,	3.038,	2.682,	2.248,	1.880,	1.567,	1.302,	1.077,	0.887,	0.727,	0.592,	0.479,	0.385,	0.306,	0.240,	0.185,	0.140,	0.103,	0.073,	0.048,	0.028,	0.013
     ],
     # subsea cables
     # - lifetime in years
@@ -69,10 +69,27 @@ case_data = CaseData(
     # - existing line capacity in each year (MW)
     l̄0 = [74.000,	74.000,	74.000,	74.000,	74.000,	74.000,	74.000,	74.000,	74.000,	74.000,	74.000,	74.000,	38.000,	38.000,	38.000,	38.000,	38.000,	38.000,	38.000,	38.000,	38.000,	38.000,	0.000,	0.000,	0.000,	0.000
     ],
-    # - prorated installation cost in each year ($/MW)
-    pℓ = [3.250,	3.125,	3.000,	2.875,	2.750,	2.625,	2.500,	2.375,	2.250,	2.125,	2.000,	1.875,	1.750,	1.625,	1.500,	1.375,	1.250,	1.125,	1.000,	0.875,	0.750,	0.625,	0.500,	0.375,	0.250,	0.125
+    # - prorated installation cost in each year (million $/MW)
+    pℓ = 1e6 * [3.250,	3.125,	3.000,	2.875,	2.750,	2.625,	2.500,	2.375,	2.250,	2.125,	2.000,	1.875,	1.750,	1.625,	1.500,	1.375,	1.250,	1.125,	1.000,	0.875,	0.750,	0.625,	0.500,	0.375,	0.250,	0.125
     ],
 )
 
 # solve the joint planning and operation problem
 JP = solve_JP(case_data = case_data)
+
+# Cumulative results
+println("Cumulative results")
+println("Objective (million \$): ", round(objective_value(JP)/1e6, digits = 3))
+println("Battery capital cost (million \$): ", round(sum(case_data.pb .* value.(JP[:xb]))/1e6, digits = 3))
+println("Battery investment (MW): ", sum(value.(JP[:xb])))
+println("Subsea investment (MW): ", sum(value.(JP[:xℓ])))
+println("Lost load (MWh): ", sum(value.(JP[:s])))
+println("Energy charged (MWh): ", sum(value.(JP[:xc])))
+println("Energy discharged (MWh): ", sum(value.(JP[:xd])))
+
+# 2050 peak results
+println("Snapshot 2050")
+N = length(case_data.pb) 
+println("Peak load (MW): ", maximum(case_data.ℓ[end, :]))
+println("Subsea (MW): ", case_data.l̄0[end] + value(sum( JP[:xℓ][i] for i in n̲(N, case_data.Nℓ):N )))
+println("Battery (MW): ", case_data.x̄b0[end] + value(sum( JP[:xb][i] for i in n̲(N, case_data.Nb):N )))

@@ -9,7 +9,7 @@ end
 function build_JP(; case_data::CaseData = CaseData())
     # unpack data
     @unpack Nb, Nℓ, l̄0, x̄b0, pb, pℓ, x̲ℓ, x̄ℓ, x̲b, x̄b, p̄, p, ℓ, ηc, ηd, T, Ts, Δt = case_data;
-    K = length(p[1])
+    K = size(case_data.p, 2)
     N = length(pb) 
     # build battery operation Model
     JP = Model()
