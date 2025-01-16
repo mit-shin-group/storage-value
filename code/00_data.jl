@@ -25,11 +25,11 @@ end
     x̲b::Float64 = 0.
     x̄b::Float64 = 2.
     p̄::Float64 = 10.
-    p::Vector{Vector{Float64}} = [[1., 1., 1.], [1., 1., 1.]]
-    ℓ::Vector{Vector{Float64}} = [[1., 2., 1.], [1.25, 2.5, 1.25]]
+    p::Matrix{Float64} = ones(2,3)
+    ℓ::Matrix{Float64} = [[1., 2., 1.], [1.25, 2.5, 1.25]]
     ηc::Float64 = 0.92
     ηd::Float64 = 0.92
-    Tn::Float64 = 1/length(p[1])
+    T::Vector{Float64} = 1/length(p[1])
     Ts::Float64 = 8.
     Δt::Float64 = 1.
 end

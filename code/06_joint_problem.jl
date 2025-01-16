@@ -8,7 +8,7 @@ end
 
 function build_JP(; case_data::CaseData = CaseData())
     # unpack data
-    @unpack Nb, Nℓ, l̄0, x̄b0, pb, pℓ, x̲ℓ, x̄ℓ, x̲b, x̄b, p̄, p, ℓ, ηc, ηd, Tn, Ts, Δt = case_data;
+    @unpack Nb, Nℓ, l̄0, x̄b0, pb, pℓ, x̲ℓ, x̄ℓ, x̲b, x̄b, p̄, p, ℓ, ηc, ηd, T, Ts, Δt = case_data;
     K = length(p[1])
     N = length(pb) 
     # build battery operation Model
@@ -38,8 +38,8 @@ function build_JP(; case_data::CaseData = CaseData())
     @constraint(JP, [n = 1:N, k = 1:K-1], y0[n] + Δt * sum( ηc * xc[n,l] - xd[n,l]/ηd for l = 1:k) >= 0.)
     @constraint(JP, [n = 1:N], sum( ηc * xc[n,l] - xd[n,l]/ηd for l = 1:K) >= 0)
     # add objective
-    @constraint(JP, [n = 1:N, k=1:K], s[n,k] >= xc[n,k] - xd[n,k] + ℓ[n][k] - l̄0[n] - sum( xℓ[i] for i in n̲(n, Nℓ):n ))
-    @objective(JP, Min, sum( pb[n] * xb[n] + pℓ[n] * xℓ[n] + Tn * sum( p̄ * s[n,k] + p[n][k] * (xc[n,k] - xd[n,k]) for k = 1:K ) for n in 1:N))
+    @constraint(JP, [n = 1:N, k=1:K], s[n,k] >= xc[n,k] - xd[n,k] + ℓ[n,k] - l̄0[n] - sum( xℓ[i] for i in n̲(n, Nℓ):n ))
+    @objective(JP, Min, sum( pb[n] * xb[n] + pℓ[n] * xℓ[n] + T[n] * sum( p̄ * s[n,k] + p[n,k] * (xc[n,k] - xd[n,k]) for k = 1:K ) for n in 1:N))
     return JP
 end
 
