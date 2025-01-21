@@ -55,6 +55,21 @@ using JuMP, Gurobi, DataFrames, Statistics
 77
 ]
 
+function build_model_unlimited(η::Float64, ℓ::Vector{Int64})
+    K = length(ℓ)
+    PS = Model()
+    # variables
+    @variable(PS, x[1:K])
+    @variable(PS, ℓ0)
+    # constraints
+    @constraint(PS, sum(x) >= 0)
+    @constraint(PS, [k = 1:K], x[k] <= η * (ℓ0 - ℓ[k]))
+    @constraint(PS, [k = 1:K], x[k] <= ℓ0 - ℓ[k])
+    # objective
+    @objective(PS, Min, ℓ0)
+    return PS
+end
+
 function build_model(η::Float64, ℓ::Vector{Int64}, ȳ::Float64; Δt::Float64 = 1.0)
     K = length(ℓ)
     PS = Model()
@@ -79,6 +94,13 @@ function build_model(η::Float64, ℓ::Vector{Int64}, ȳ::Float64; Δt::Float64
     return PS
 end
 
+function run_model_unlimited(; η::Float64 = 0.92, ℓ::Vector{Int64} = ℓ)
+    PS = build_model_unlimited(η, ℓ)
+    set_optimizer(PS, Gurobi.Optimizer)
+    optimize!(PS)
+    return PS
+end
+
 function run_model(; η::Float64 = 0.92, ℓ::Vector{Int64} = ℓ, ȳ::Float64 = 1.)
     PS = build_model(η, ℓ, ȳ)
     set_optimizer(PS, Gurobi.Optimizer)
@@ -97,6 +119,15 @@ function run_η(η_list::Vector{Float64})
     return DataFrame(η = η_list, ℓ = ℓ_list, α = α_list)
 end
 
+function run_η_unlimited(η_list::Vector{Float64}, ℓ::Vector{Int64})
+    ℓ0_list = []
+    for η in η_list
+        PS = run_model_unlimited(η = η, ℓ = ℓ)
+        push!(ℓ0_list, round(objective_value(PS), digits = 3))
+    end
+    return DataFrame(η = η_list, ℓ = ℓ0_list)
+end
+
 function run_ȳ(ȳ_list::Vector{Float64}; ℓ::Vector{Int64} = ℓ)
     ℓ_list = []
     γ_list = []
@@ -112,7 +143,7 @@ function run_ȳ(ȳ_list::Vector{Float64}; ℓ::Vector{Int64} = ℓ)
     return DataFrame(ȳ = ȳ_list, ℓ = ℓ_list, γ = γ_list, xin = xin_list, xout = xout_list)
 end
 
-η_list = 0.5:0.01:1.0
+η_list = 0.0:0.01:1.0
 
 ȳmax = sum(max.(ℓ .- mean(ℓ), 0))
 ȳ_list = 0.0:1:ceil(ȳmax)
