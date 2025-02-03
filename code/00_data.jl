@@ -9,6 +9,7 @@ using Parameters
     x̄::Float64 = 1.
     x̲::Float64 = -1.
     ȳ::Float64 = 8.
+    y0::Union{Nothing, Float64} = nothing
     ηc::Float64 = 0.92
     ηd::Float64 = 0.92
 end
