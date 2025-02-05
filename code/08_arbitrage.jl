@@ -15,23 +15,23 @@ case_data = CaseDataBO(
     # - value of lost load ($/MWh)
     p̄ = 2500.,
     # - load (MW), rows years, columns hours
-    ℓ = data[!, "MW Factor"],
+    ℓ = 98/57*data[!, "MW Factor"],
     # battery
     # - max discharging power (MW)
-    x̲ = -6,
+    x̲ = -18,
     # - max charging power (MW)
-    x̄ = 6,
+    x̄ = 18,
     # - energy capacity (MWh)
-    ȳ = 48,
+    ȳ = 8*18,
     # - initial state-of-charge (MWh)
-    y0 = nothing,
+    y0 = 8*18/2,
     # - storage charging efficiency (-)
     ηc = 0.92,
     # - storage discharging efficiency (-)
     ηd = 0.92,
     # subsea cables
     # - capacity (MW)
-    ℓ̄  = 74
+    ℓ̄  = 120
 )
 
 # solve the problem
