@@ -19,7 +19,7 @@ function build_BO(; case_data::CaseDataBO = CaseDataBO())
     @constraint(BO, [k = 1:K-1], y0 + Δt * sum( ηc * xc[l] - xd[l]/ηd for l = 1:k) >= 0)
     @constraint(BO, sum( ηc * xc[l] - xd[l]/ηd for l = 1:K) >= 0)
     # initial soc
-    if case_data.y0 != nothing
+    if !isnothing(case_data.y0)
         fix(y0, case_data.y0; force = true)
     end
     # add objective

@@ -46,7 +46,7 @@ data = Dict(
     "cable min. investment (MW)" => 40.,
     "cable max. investment (MW)" => 40.,
     "electricity peak load price (\$/MWh)" => ones(26, 24) .* [62.31, 71.83, 48.56, 35.36, 30.38, 32.18, 34.61, 40.13, 32.08, 29.59, 35.10, 45.30, 49.03, 46.26, 57.91, 64.44, 107.19, 65.80, 86.22, 54.13, 94.15, 47.81, 41.72, 46.61]',
-    "probability-adjusted peak load days" => ones(26,2) .* [30 1]
+    "probability-adjusted peak load days (-)" => ones(26,2) .* [30 1]
 )
 
 # write to JSON

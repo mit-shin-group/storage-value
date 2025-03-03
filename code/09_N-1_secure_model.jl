@@ -38,7 +38,7 @@ function build_JP(; case_data::CaseDataN1 = CaseDataN1())
     @constraint(JP, [i = 1:size(l̄0,1), c = 1:C], x̄[:,c] .>= (c-1)*l̄0[i,:])
     # -- operational
     # - max charging power
-    @constraint(JP, [n = 1:N, k = 1:K, c = 1:C], xc[n,k,c] - xd[n,k,c] <= sum(x̄b0[i,n] for i in 1:size(x̄b0,1)) + sum( xb[i] for i in n̲(n, Nb):n ))
+    @constraint(JP, [n = 1:N, k = 1:K, c = 1:C], xc[n,k,c] - xd[n,k,c] <= sum(x̄b0[i,n] for i in eachindex(x̄b0[:,1])) + sum( xb[i] for i in n̲(n, Nb):n ))
     # - max discharing power
     @constraint(JP, [n = 1:N, k = 1:K, c = 1:C], xc[n,k,c] - xd[n,k,c] >= -x̄b0[n] - sum( xb[i] for i in n̲(n, Nb):n ))
     # - max initial soc
@@ -51,7 +51,7 @@ function build_JP(; case_data::CaseDataN1 = CaseDataN1())
     @constraint(JP, [n = 1:N, c = 1:C], sum( ηc * xc[n,l,c] - xd[n,l,c]/ηd for l = 1:K) >= 0)
     # add objective
     # - slack variable
-    @constraint(JP, [n = 1:N, k=1:K, c=1:C], s[n,k,c] >= xc[n,k,c] - xd[n,k,c] + ℓ[n,k] - sum(l̄0[i,n] for i in 1:size(l̄0,1)) - sum( xℓ[i] for i in n̲(n, Nℓ):n ) + x̄[n,c])
+    @constraint(JP, [n = 1:N, k=1:K, c=1:C], s[n,k,c] >= xc[n,k,c] - xd[n,k,c] + ℓ[n,k] - sum(l̄0[i,n] for i in eachindex(l̄0[:,1])) - sum( xℓ[i] for i in n̲(n, Nℓ):n ) + x̄[n,c])
     # - actual objective
     @objective(JP, Min, sum( pb[n] * xb[n] + pℓ[n] * xℓ[n] + sum( T[n,c] * sum( p̄ * s[n,k,c] + p[n,k] * (xc[n,k,c] - xd[n,k,c]) for k = 1:K ) for c in 1:C) for n in 1:N))
     return JP
