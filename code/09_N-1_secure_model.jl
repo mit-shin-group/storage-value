@@ -72,3 +72,23 @@ function printsol(model::Model)
         println("$(name(var)) = $(round(value(var), digits = 3))")
     end
 end
+
+function analyze_JP(JP::Model, case_data::CaseDataN1)
+    # Cumulative results
+    println("Cumulative results")
+    println("Objective (million \$): ", round(objective_value(JP)/1e6, digits = 3))
+    println("Battery capital cost (million \$): ", round(sum(case_data.pb .* value.(JP[:xb]))/1e6, digits = 3))
+    println("Battery investment (MW): ", sum(value.(JP[:xb])))
+    println("Subsea investment (MW): ", sum(value.(JP[:xℓ])))
+    println("Subsea capital cost (million \$): ", round(sum(case_data.pℓ .* value.(JP[:xℓ]))/1e6, digits = 3))
+    println("Lost load (MWh): ", sum(sum(case_data.T[:,c]' * value.(JP[:s][:,:,c]) for c in eachindex(case_data.T[1,:]))))
+    println("Energy charged (MWh): ", sum(sum(case_data.T[:,c]' * value.(JP[:xc][:,:,c]) for c in eachindex(case_data.T[1,:]))))
+    println("Energy discharged (MWh): ", sum(sum(case_data.T[:,c]' * value.(JP[:xd][:,:,c]) for c in eachindex(case_data.T[1,:]))))
+    # 2050 peak results
+    println("Snapshot 2050")
+    N = length(case_data.pb) 
+    println("Peak load (MW): ", maximum(case_data.ℓ[end, :]))
+    println("Subsea (MW): ", case_data.l̄0[end] + value(sum( JP[:xℓ][i] for i in n̲(N, case_data.Nℓ):N )))
+    println("Battery (MW): ", case_data.x̄b0[end] + value(sum( JP[:xb][i] for i in n̲(N, case_data.Nb):N )))
+end
+
