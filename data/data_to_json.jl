@@ -1,5 +1,10 @@
 using JSON3
 
+# return combustion turbine max ouput in MW, computed based on Figure 3.4 in PNNL report
+function ctg_max_output(temp_in_F::Float64)
+    return (-0.2362 * temp_in_F^2 - 20.027 * temp_in_F  + 16637)/1000
+end
+
 # construct data dictionary
 data = Dict(
     "planning periods" => 2025:2050,
@@ -34,6 +39,9 @@ data = Dict(
     "existing line capacity (MW)" => [36.000 36.000 36.000 36.000 36.000 36.000 36.000 36.000 36.000 36.000 36.000 36.000  0.000  0.000  0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000;
     38.000 38.000 38.000 38.000 38.000 38.000 38.000 38.000 38.000 38.000 38.000 38.000 38.000 38.000 38.000 38.000 38.000 38.000 38.000 38.000 38.000 38.000 0.000 0.000 0.000 0.000],
     "number of existing lines (-)" => 2,
+    "existing backup capacity (MW)" => ones(15) * ctg_max_output(90.),
+    "number of existing backup generators (-)" => 1,
+    "generator capitcal cost (\$/MW)" => [], 
     "battery capital cost (\$/MW)" => 1e6 * [5.673,	5.007,	4.419,	3.900,	3.442,	3.038,	2.682,	2.248,	1.880,	1.567,	1.302,	1.077,	0.887,	0.727,	0.592,	0.479,	0.385,	0.306,	0.240,	0.185,	0.140,	0.103,	0.073,	0.048,	0.028,	0.013],
     "line capital cost (\$/MW)" => 1e6 * [3.250,	3.125,	3.000,	2.875,	2.750,	2.625,	2.500,	2.375,	2.250,	2.125,	2.000,	1.875,	1.750,	1.625,	1.500,	1.375,	1.250,	1.125,	1.000,	0.875,	0.750,	0.625,	0.500,	0.375,	0.250,	0.125],
     "time discretization (h)" => 1.,
