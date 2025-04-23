@@ -1,7 +1,7 @@
 using Parameters, JSON3
 
-function n̲(n, N)
-    return max(1, n - N + 1)
+function n̲(n, Nr; N = 1:25)
+    return max(first(N), n - Nr + 1)
 end
 
 # read data
