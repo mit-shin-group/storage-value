@@ -1,8 +1,11 @@
-using Parameters, JSON3
+using Parameters, JuMP, JSON3
 
 function n̲(n, Nr; N = 1:25)
     return max(first(N), n - Nr + 1)
 end
+
+# Market participation types
+@enum Market full no_exports limited_backup peak_shaving 
 
 # read data
 file_path = "data/nantucket.json"
@@ -74,4 +77,6 @@ ȳℓ = reshape(data["peak load (MW)"], 26, 24)
     ηd::Float64 = 0.92
     # Storage duration
     Ts::Float64 = 8.
+    # Market participation
+    market::Market = full
 end

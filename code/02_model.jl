@@ -3,7 +3,7 @@ include("01_data.jl")
 
 function build_model(case_data::CaseData = CaseData())
     # unpack important data
-    @unpack R, D, N, K, C, x̲, x̄, x0, I, Nr, ȳℓ, Δt, ηc, ηd, Ts, p, ps, pd, c0, T = case_data
+    @unpack R, D, N, K, C, x̲, x̄, x0, I, Nr, ȳℓ, Δt, ηc, ηd, Ts, p, ps, pd, c0, T, market = case_data
     # start modeling
     model = Model()
     # Decision variables
@@ -34,6 +34,10 @@ function build_model(case_data::CaseData = CaseData())
     @constraint(model, [r in ["s"], n in N, k in first(K) - 1:last(K), c in C], y0[n] + Δt * sum(ηc * yd[r,n,l,c] - ys[r,n,l,c]/ηd for l = first(K) : k; init = 0) >= 0)
     # - state of charge balance
     @constraint(model, [r in ["s"], n in N, c in C], sum(ηc * yd[r,n,k,c] - ys[r,n,k,c]/ηd for k in K) >= 0)
+    # - market participation
+    if market == no_exports
+        @constraint(model, [r in ["g"], n in N, k in K, c in C], yd[r,n,k,c] == 0)
+    end
     # objective
     @objective(model, Min, sum( sum( p[r,n] * x[r,n] + c0[r,n] * z[r,n] for r in R) 
     + sum( T[n,c] * sum( sum( ps[r,n,k] * ys[r,n,k,c] for r in R) 
