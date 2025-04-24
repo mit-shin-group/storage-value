@@ -65,7 +65,8 @@ ȳℓ = reshape(data["peak load (MW)"], 26, 24)
     x̲::Dict{String, Float64} = Dict(r => x for (r,x) in zip(R, x̲))
     x̄::Dict{String, Float64} = Dict(r => x for (r,x) in zip(R, x̄))
     # Load
-    ȳℓ::Dict{Tuple{Int64, Int64}, Float64} = Dict((n,k) => ȳℓ[n̲(n, first(N)), k] for n in N, k in K)
+    # ȳℓ::Dict{Tuple{Int64, Int64}, Float64} = Dict((n,k) => ȳℓ[n̲(n, first(N)), k] for n in N, k in K)
+    ȳℓ = Containers.@container([n in N, k in K], ȳℓ[n̲(n, first(N)), k])
     # Time discretization (hours)
     Δt::Float64 = 1.
     # Charging and discharging efficiencies
