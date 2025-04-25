@@ -37,6 +37,8 @@ function build_model(case_data::CaseData = CaseData())
     # - market participation
     if market == no_exports
         @constraint(model, [r in ["g"], n in N, k in K, c in C], yd[r,n,k,c] == 0)
+    elseif market == peak_shaving
+        # Continue here 
     end
     # objective
     @objective(model, Min, sum( sum( p[r,n] * x[r,n] + c0[r,n] * z[r,n] for r in R) 

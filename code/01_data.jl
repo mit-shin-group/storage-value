@@ -23,11 +23,11 @@ p = [data["backup capital cost (\$/MW)"], data["line capital cost (\$/MW)"], dat
 # - operating cost
 pg = reshape(data["electricity peak load price (\$/MWh)"], 24, Int(length(data["electricity peak load price (\$/MWh)"])/24))
 pb = data["backup electricity price (\$/MWh)"]
-pℓ = data["value of lost load (\$/MWh)"]
+pℓ = 10 * data["value of lost load (\$/MWh)"]
 ps = [ones(24) * pb', pg, zeros(24, Int(length(data["electricity peak load price (\$/MWh)"])/24))]
 pd = [ones(24) * pℓ', pg, zeros(24, Int(length(data["electricity peak load price (\$/MWh)"])/24))]
 # - time/probability weights
-T = [5:30, 0.1 * (5:30)]
+T = [15:40, 0.2 * (15:40)]
 # - existing capacity
 x0 = [reshape(data["existing backup capacity (MW)"], Int(length(data["existing backup capacity (MW)"])/26), 26), 
       reshape(data["existing line capacity (MW)"], Int(length(data["existing line capacity (MW)"])/26), 26),
@@ -37,6 +37,8 @@ x̲ = [data["backup min. investment (MW)"], data["cable min. investment (MW)"], 
 x̄ = [data["backup max. investment (MW)"], data["cable max. investment (MW)"], data["battery max. investment (MW)"]]
 # - peak load
 ȳℓ = reshape(data["peak load (MW)"], 26, 24)
+# - discount rate
+r = data["discount rate (-)"]
 
 @with_kw struct CaseData
     # Index Sets
@@ -79,4 +81,6 @@ ȳℓ = reshape(data["peak load (MW)"], 26, 24)
     Ts::Float64 = 8.
     # Market participation
     market::Market = full
+    # Discount rate
+    r::Float64 = r
 end

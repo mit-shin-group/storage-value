@@ -3,7 +3,7 @@ using JuMP, OffsetArrays
 # include("01_data.jl")
 
 function analysis(model::Model; case_data::CaseData = CaseData(), print_result::Bool = false)
-    @unpack K, N, C, ȳℓ, p, c0, T, ps, pd = case_data;
+    @unpack K, N, C, ȳℓ, p, c0, T, ps, pd, r = case_data;
     # retrieve necessary information
     ys = value.(model[:ys])
     yd = value.(model[:yd])
@@ -11,6 +11,8 @@ function analysis(model::Model; case_data::CaseData = CaseData(), print_result::
     z = value.(model[:z])
     # write result dict
     result_dict = Dict(
+        # parameters
+        "discount rate" => r,
         # general
         "objective" => objective_value(model),
         "solve time" => solve_time(model),
@@ -37,6 +39,7 @@ function analysis(model::Model; case_data::CaseData = CaseData(), print_result::
         # total demand (MWh)
         "total demand grid (MWh)" => sum(T[n,c] * sum(yd["g", n, k, c] for k in K) for n in N, c in C),
         "total demand load (MWh)" => sum(T[n,c] * sum(yd["ℓ", n, k, c] for k in K) for n in N, c in C),
+        "total unmet load (MWh)" => sum(T[n,c] * sum(ȳℓ[n,k] - yd["ℓ", n, k, c] for k in K) for n in N, c in C),
         "total demand storage (MWh)" => sum(T[n,c] * sum(yd["s", n, k, c] for k in K) for n in N, c in C),
         # supply cost ($)
         "supply cost backup (money)" => sum(T[n,c] * sum(ps["b", n, k] * ys["b", n, k, c] for k in K) for n in N, c in C),
@@ -48,38 +51,48 @@ function analysis(model::Model; case_data::CaseData = CaseData(), print_result::
         "demand revenue storage (money)" => sum(T[n,c] * sum(pd["s", n, k] * yd["s", n, k, c] for k in K) for n in N, c in C),
         )
     if print_result
+        println("Discount rate")
+        println(result_dict["discount rate"])
         println("General")
         println(result_dict["objective"])
         println(result_dict["solve time"])
         println(result_dict["optimality gap"])
         println(result_dict["complementarity violation"])
-        println("Terminal capacity")
+        # println("Terminal capacity")
+        println()
         println(result_dict["terminal backup"])
         println(result_dict["terminal grid"])
         println(result_dict["terminal storage"])
         println(result_dict["terminal peak demand"])
         println(result_dict["terminal peak unmet demand"])
-        println("Total investment (MW)")
+        # println("Total investment (MW)")
+        println()
         println(result_dict["total investment backup (MW)"])
         println(result_dict["total investment grid (MW)"])
         println(result_dict["total investment storage (MW)"])
-        println("Total investment (\$)")
+        # println("Total investment (\$)")
+        println()
         println(result_dict["total investment backup (money)"])
         println(result_dict["total investment grid (money)"])
         println(result_dict["total investment storage (money)"])
-        println("Total supply (MWh)")
+        # println("Total supply (MWh)")
+        println()
         println(result_dict["total supply backup (MWh)"])
         println(result_dict["total supply grid (MWh)"])
         println(result_dict["total supply storage (MWh)"])
-        println("Total demand (MWh)")
+        # println("Total demand (MWh)")
+        println()
         println(result_dict["total demand grid (MWh)"])
         println(result_dict["total demand load (MWh)"])
+        println(result_dict["total unmet load (MWh)"])
         println(result_dict["total demand storage (MWh)"])
-        println("Supply cost (\$)")
+        # println("Supply cost (\$)")
+        println()
         println(result_dict["supply cost backup (money)"])
         println(result_dict["supply cost grid (money)"])
         println(result_dict["supply cost storage (money)"])
-        println("Demand revenue (\$)")
+        # println("Demand revenue (\$)")
+        println()
         println(result_dict["demand revenue grid (money)"])
         println(result_dict["demand revenue load (money)"])
         println(result_dict["demand revenue storage (money)"])
