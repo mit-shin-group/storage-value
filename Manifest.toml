@@ -1,8 +1,8 @@
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.11.2"
+julia_version = "1.11.3"
 manifest_format = "2.0"
-project_hash = "475bf1352288eead5319c62ab4bda0effbf35db1"
+project_hash = "b4d126f39c39d83249b434e737cd477c1157f6bf"
 
 [[deps.AliasTables]]
 deps = ["PtrArrays", "Random"]
@@ -121,6 +121,21 @@ deps = ["Serialization", "Sockets"]
 git-tree-sha1 = "d9d26935a0bcffc87d2613ce14c527c99fc543fd"
 uuid = "f0e56b4a-5159-44fe-b623-3e5288b988bb"
 version = "2.5.0"
+
+[[deps.ConstructionBase]]
+git-tree-sha1 = "76219f1ed5771adbb096743bff43fb5fdd4c1157"
+uuid = "187b0558-2788-49d3-abe0-74a17ed4e7c9"
+version = "1.5.8"
+
+    [deps.ConstructionBase.extensions]
+    ConstructionBaseIntervalSetsExt = "IntervalSets"
+    ConstructionBaseLinearAlgebraExt = "LinearAlgebra"
+    ConstructionBaseStaticArraysExt = "StaticArrays"
+
+    [deps.ConstructionBase.weakdeps]
+    IntervalSets = "8197267c-284f-5f27-9208-e0e47529a953"
+    LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+    StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 
 [[deps.Contour]]
 git-tree-sha1 = "439e35b0b36e2e5881738abc8857bd92ad6ff9a8"
@@ -893,6 +908,12 @@ version = "1.4.8"
 [[deps.Serialization]]
 uuid = "9e88b42a-f829-5b0c-bbe9-9e923198166b"
 version = "1.11.0"
+
+[[deps.Setfield]]
+deps = ["ConstructionBase", "Future", "MacroTools", "StaticArraysCore"]
+git-tree-sha1 = "c5391c6ace3bc430ca630251d02ea9687169ca68"
+uuid = "efcf1570-3423-57d1-acb7-fd33fddbac46"
+version = "1.1.2"
 
 [[deps.Showoff]]
 deps = ["Dates", "Grisu"]
