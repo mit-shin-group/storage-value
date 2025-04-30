@@ -1,5 +1,6 @@
 using JuMP, Gurobi, Setfield
 include("01_data.jl")
+include("02_peak_shaving_potential.jl")
 
 function build_model(case_data::CaseData = CaseData())
     # this function requires ["g"] in R and ["ℓ"] in D
@@ -45,7 +46,18 @@ function build_model(case_data::CaseData = CaseData())
     if market == no_exports
         @constraint(model, [r in ["g"], n in N, k in K, c in C], yd[r,n,k,c] == 0)
     elseif market == peak_shaving
-        # Continue here 
+        # construct M
+        x̄tot_s = compute_x̄tot_s(case_data)
+        M̲1 = -maximum(ȳℓ) - 2*x̄["g"]
+        M̲2 = -2*maximum(ȳℓ) - 2*x̄["g"] - x̄["b"] - x̄["s"] - x̄tot_s
+        M̅1 = compute_M̄1(case_data)
+        M̅2 = maximum(ȳℓ) + x̄["b"] + x̄["s"] + x̄tot_s
+        # add additional variables and constraints
+        @variable(model, zM[n in N, k in K, c in C], Bin)
+        @constraint(model, [n in N, k in K, c in C], (1 - zM[n,k,c]) * M̲1 <= yd["ℓ",n,k,c] - xtot["g",n,c])
+        @constraint(model, [n in N, k in K, c in C], zM[n,k,c] * M̅1[n,k,c] >= yd["ℓ",n,k,c] - xtot["g",n,c])
+        @constraint(model, [n in N, k in K, c in C], sum(ys[r,n,k,c] for r in ["b", "s"]) <= yd["ℓ",n,k,c] - xtot["g", n, c] - (1 - zM[n,k,c])*M̲2)
+        @constraint(model, [n in N, k in K, c in C], sum(ys[r,n,k,c] for r in ["b", "s"]) <= zM[n,k,c] * M̅2)
     end
     # objective
     @objective(model, Min, sum( sum( p[r,n] * x[r,n] + c0[r,n] * z[r,n] for r in R) 
@@ -63,7 +75,30 @@ function run_model(case_data::CaseData = CaseData())
     return model
 end
 
-function M̲(case_data::CaseData = CaseData())
-    # copy case data setting market to 
-    model = run_model(case_data)
+function compute_x̄tot_s(case_data::CaseData = CaseData())
+    @unpack ȳℓ, Δt, ηc, ηd, Ts = case_data
+    # find planning period with maximum demand
+    n = argmax(Array(ȳℓ))[1]
+    # compute normalized potential
+    _, _, power, duration = compute_potential(ηc * ηd, Array(ȳℓ)[n, :], Δt = Δt)
+    # denormalize power and duration
+    power = power * mean(Array(ȳℓ)[n, :])
+    duration = duration * 12
+    # compute result
+    return max(1, duration/Ts)*power
+end
+
+function compute_xtot(x::Dict{Int64, Float64}; case_data::CaseData = CaseData(), r::String = "g")
+    @unpack N, C, x0, I, Nr = case_data
+    if r in ["b", "s"]
+        return Dict((n,c) => sum( x0[r, n, i] for i in I[r]; init = 0) + sum( x[i] for i in n̲(n, Nr[r], N = N) : n ) for n in N, c in C)
+    elseif r == "g"
+        return Dict((n,c) => sum( x0[r, n, i] for i in I[r]; init = 0) + sum( x[i] for i in n̲(n, Nr[r], N = N) : n ) - c * max(maximum(x0[r, n, i] for i in I[r]; init = 0), maximum(x[i] for i in n̲(n, Nr[r], N = N) : n)) for n in N, c in C)
+    end
+end
+
+function compute_M̄1(case_data::CaseData = CaseData())
+    @unpack ȳℓ, N, K, C = case_data
+    xtot = compute_xtot(Dict(n => 0. for n in N), case_data = case_data, r = "g")
+    return Dict((n,k,c) => ȳℓ[n, k] - xtot[n,c] for n in N, k in K, c in C)
 end

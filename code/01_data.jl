@@ -23,7 +23,7 @@ p = [data["backup capital cost (\$/MW)"], data["line capital cost (\$/MW)"], dat
 # - operating cost
 pg = reshape(data["electricity peak load price (\$/MWh)"], 24, Int(length(data["electricity peak load price (\$/MWh)"])/24))
 pb = data["backup electricity price (\$/MWh)"]
-pℓ = 10 * data["value of lost load (\$/MWh)"]
+pℓ = 4 * data["value of lost load (\$/MWh)"]
 ps = [ones(24) * pb', pg, zeros(24, Int(length(data["electricity peak load price (\$/MWh)"])/24))]
 pd = [ones(24) * pℓ', pg, zeros(24, Int(length(data["electricity peak load price (\$/MWh)"])/24))]
 # - time/probability weights

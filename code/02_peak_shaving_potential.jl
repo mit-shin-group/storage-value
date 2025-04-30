@@ -17,7 +17,7 @@ function model_unlimited(η::Float64, ℓ::Vector{Float64})
     return PS
 end
 
-function compute_results(η::Float64, ℓ::Vector{Float64}; Δt::Float64 = 1.)
+function compute_potential(η::Float64, ℓ::Vector{Float64}; Δt::Float64 = 1.)
     if η == 0.
         new_peak = maximum(ℓ)/mean(ℓ) - 1
         power = ' '
@@ -46,7 +46,7 @@ function analysis()
     ℓ = reshape(data["peak load (MW)"], (length(data["planning periods"]), Int(length(data["peak load (MW)"])/length(data["planning periods"]))))
 
     η_list = 0:0.01:1
-    df = DataFrame([compute_results(η, ℓ[1,:]) for η in η_list])
+    df = DataFrame([compute_potential(η, ℓ[1,:]) for η in η_list])
     CSV.write("results/potential.txt", df)
     return df
 end
