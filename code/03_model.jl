@@ -68,7 +68,66 @@ function build_model(case_data::CaseData = CaseData())
     return model
 end
 
-function run_model(case_data::CaseData = CaseData())
+function build_model(case_data::CaseDataOps = CaseDataOps())
+    # this function requires ["g"] in R and ["ℓ"] in D
+    # unpack important data
+    @unpack R, D, K, ȳℓ, Δt, ηc, ηd, Ts, ps, pd, market, xtot, y0, load_shedding = case_data
+    # start modeling
+    model = Model()
+    # Decision variables
+    @variable(model, ys[r in R, k in K] >= 0)
+    @variable(model, yd[r in D, k in K] >= 0)
+    if isnothing(y0) & ("s" in R)
+        @variable(model, 0 <= y0 <= Ts * xtot["s"])
+    end
+    # constraints
+    # - balance
+    @constraint(model, [k in K], sum(ys[r,k] for r in R) == sum(yd[r,k] for r in D))
+    # - capacity limit
+    @constraint(model, [r in R, k in K], ys[r,k] <= xtot[r])
+    @constraint(model, [r in ["ℓ"], k in K], yd[r,k] <= ȳℓ[k])
+    if !load_shedding
+            fix.(yd["ℓ",:], ȳℓ; force = true)
+    end
+    if !isempty(setdiff(D, ["ℓ"]))
+        @constraint(model, [r in setdiff(D, ["ℓ"]), k in K], yd[r,k] <= xtot[r])
+    end
+    if "s" in R
+        # - state-of-charge bounds
+        @constraint(model, [r in ["s"], k in first(K) - 1:last(K)], y0 + Δt * sum(ηc * yd[r,l] - ys[r,l]/ηd for l = first(K) : k; init = 0) <= Ts * xtot[r])
+        @constraint(model, [r in ["s"], k in first(K) - 1:last(K)], y0 + Δt * sum(ηc * yd[r,l] - ys[r,l]/ηd for l = first(K) : k; init = 0) >= 0)
+        # - state of charge balance
+        @constraint(model, [r in ["s"]], sum(ηc * yd[r,k] - ys[r,k]/ηd for k in K) >= 0)
+    end
+    # - market participation
+    if market == no_exports
+        @constraint(model, [r in ["g"], k in K], yd[r,k] == 0)
+    elseif market == peak_shaving
+        if load_shedding
+            # construct M
+            M̲1 = -xtot["g"]
+            M̲2 = -sum(xtot)
+            M̅1 = ȳℓ .- xtot["g"]
+            M̅2 = sum(xtot[r] for r in ["b", "s"])
+            # add additional variables and constraints
+            @variable(model, zM[k in K], Bin)
+            @constraint(model, [k in K], (1 - zM[k]) * M̲1 <= yd["ℓ",k] - xtot["g"])
+            @constraint(model, [k in K], zM[k] * M̅1[k] >= yd["ℓ",k] - xtot["g"])
+            @constraint(model, [k in K], sum(ys[r,k] for r in ["b", "s"]) <= yd["ℓ",k] - xtot["g"] - (1 - zM[k])*M̲2)
+            @constraint(model, [k in K], sum(ys[r,k] for r in ["b", "s"]) <= zM[k] * M̅2)
+        else
+            @constraint(model, [k in K], sum( ys[r,k] for r in setdiff(R, ["ℓ"])) <= max( fix_value(yd["ℓ", k]) - xtot["g"], 0))
+        end
+    end
+    # objective
+    @objective(model, Min,
+    sum( sum( ps[r,k] * ys[r,k] for r in R) 
+    - sum(pd[r,k] * yd[r,k] for r in D) for k in K))
+    # Return result
+    return model
+end
+
+function run_model(case_data::Union{CaseData, CaseDataOps} = CaseData())
     model = build_model(case_data)
     set_optimizer(model, Gurobi.Optimizer)
     optimize!(model)

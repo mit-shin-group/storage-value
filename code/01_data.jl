@@ -39,6 +39,12 @@ x̄ = [data["backup max. investment (MW)"], data["cable max. investment (MW)"], 
 ȳℓ = reshape(data["peak load (MW)"], 26, 24)
 # - discount rate
 r = data["discount rate (-)"]
+# - planning horizon
+N = 2025:2050
+# - initial resources
+R = ["b", "g", "s"]
+I = Dict(r => i for (r,i) in zip(R, [1:1, 1:2, 1:1]))
+xtot = Dict((r,n) => sum(x0[ri][i, n̲(n, first(N))] for i in I[r]) for (ri, r) in enumerate(R) for n in N)
 
 @with_kw struct CaseData
     # Index Sets
@@ -83,4 +89,34 @@ r = data["discount rate (-)"]
     market::Market = full
     # Discount rate
     r::Float64 = r
+end
+
+@with_kw struct CaseDataOps
+    # Index Sets
+    # - Supply resource types
+    R::Vector{String} = ["b", "g", "s"]
+    # - Demand resource types
+    D::Vector{String} = ["ℓ", "g", "s"]
+    # - Operating periods
+    K::UnitRange{Int64} = 1:24
+    # Operating costs
+    ps::Dict{Tuple{String, Int64}, Float64} = Dict((r,k) => ps[ri][k, n̲(first(N), first(N))] for (ri, r) in enumerate(R), k in K)
+    pd::Dict{Tuple{String, Int64}, Float64} = Dict((r,k) => pd[ri][k, n̲(first(N), first(N))] for (ri, r) in enumerate(D), k in K)
+    # Load
+    ȳℓ = Containers.@container([k in K], ȳℓ[n̲(first(N), first(N)), k])
+    # Time discretization (hours)
+    Δt::Float64 = 1.
+    # Charging and discharging efficiencies
+    ηc::Float64 = 0.92
+    ηd::Float64 = 0.92
+    # Storage duration
+    Ts::Float64 = 8.
+    # Market participation
+    market::Market = full
+    # Investment decisions
+    xtot = Containers.@container([r in R], xtot[r, first(N)])
+    # Initial state-of-charge
+    y0::Union{Float64, Nothing} = nothing
+    # Allow for load schedding
+    load_shedding::Bool = true
 end
