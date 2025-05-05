@@ -17,7 +17,7 @@ yearly_data = CSV.read(data_file, DataFrame)
 N = 2025:2050
 R = ["b", "g", "s"]
 D = ["ℓ", "g", "s"]
-K = 1:nrow(data)
+K = 1:nrow(yearly_data)
 
 # Assume evolving load
 peak_load_evolution = [
@@ -48,7 +48,7 @@ peak_load_evolution = [
     97.318,
     98.084,       
 ]
-ȳℓ = peak_load_evolution/maximum(data[!, "MW Factor"]) .* ones(26, length(K)) .* yearly_data[!, "MW Factor"]'
+ȳℓ = peak_load_evolution/maximum(yearly_data[!, "MW Factor"]) .* ones(26, length(K)) .* yearly_data[!, "MW Factor"]'
 ȳℓ = Containers.@container([n in N, k in K], ȳℓ[n̲(n, first(N)), k])
 
 # and constant prices

@@ -2,7 +2,7 @@ using JuMP, OffsetArrays
 
 # include("01_data.jl")
 
-function analysis(model::Model; case_data::CaseData = CaseData(), print_result::Bool = false)
+function analysis(model::Model; case_data::CaseData = CaseData(), print_result::Bool = true)
     @unpack K, N, C, ȳℓ, p, c0, T, ps, pd, r = case_data;
     # retrieve necessary information
     ys = value.(model[:ys])
@@ -98,4 +98,69 @@ function analysis(model::Model; case_data::CaseData = CaseData(), print_result::
         println(result_dict["demand revenue storage (money)"])
     end
     return result_dict
+end
+
+function analysis_ops(model_data::Tuple{Model, CaseDataOps}; print_result::Bool = true)
+    model = model_data[1]
+    case_data = model_data[2]
+    @unpack R, K, D, market, load_shedding, ps, pd, Δt, xtot, Ts, ȳℓ = case_data;
+    # retrieve necessary information
+    ys = value.(model[:ys])
+    yd = value.(model[:yd])
+    if "s" in R
+        y0 = value(model[:y0])/(Ts * xtot["s"])
+    else
+        y0 = 0.
+    end
+    if print_result
+        for r in ["b", "g", "s"] 
+            println(r in R ? xtot[r] : 0.)
+        end
+        println()
+        for i in instances(Market)
+            println(Int(market == i))
+        end
+        println()
+        println(Int(load_shedding))
+        println()
+        println(Int(isnothing(y0)))
+        println()
+        println(objective_value(model))
+        println(solve_time(model))
+        println(Bool(MOI.get(model, Gurobi.ModelAttribute("IsMIP"))) ? relative_gap(model) : 0.)
+        println(sum((ys["s", :] .* yd["s", :]) .>= 1e-8)/length(yd["s", :]))
+        println(y0)
+        println()
+        # max supply (MWh)
+        for r in ["b", "g", "s"] 
+            println(r in R ? maximum(ys[r, :]) : 0.)
+        end
+        println()
+        # max demand (MWh)
+        for r in ["g", "ℓ", "s"] 
+            println(r in D ? maximum(yd[r, :]) : 0.)
+        end
+        println()
+        # total supply (MWh)
+        for r in ["b", "g", "s"] 
+            println(r in R ? Δt * sum(ys[r, :]) : 0.)
+        end
+        println()
+        # total demand (MWh)
+        for r in ["g", "ℓ", "s"] 
+            println(r in D ? Δt * sum(yd[r, :]) : 0.)
+        end
+        # unmet load
+        println(Δt * sum(ȳℓ - yd["ℓ", :]))
+        println()
+        # supply cost ($)
+        for r in ["b", "g", "s"] 
+            println(r in R ? Δt * sum(ps[r, k] * ys[r, k] for k in K) : 0.)
+        end
+        println()
+        # demand revenue ($)
+        for r in ["g", "ℓ", "s"]
+            println(r in D ? Δt * sum(pd[r, k] * yd[r, k] for k in K) : 0.)
+        end
+    end
 end

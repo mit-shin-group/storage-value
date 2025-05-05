@@ -121,7 +121,7 @@ function build_model(case_data::CaseDataOps = CaseDataOps())
     end
     # objective
     @objective(model, Min,
-    sum( sum( ps[r,k] * ys[r,k] for r in R) 
+    Δt * sum( sum( ps[r,k] * ys[r,k] for r in R) 
     - sum(pd[r,k] * yd[r,k] for r in D) for k in K))
     # Return result
     return model
@@ -131,7 +131,7 @@ function run_model(case_data::Union{CaseData, CaseDataOps} = CaseData())
     model = build_model(case_data)
     set_optimizer(model, Gurobi.Optimizer)
     optimize!(model)
-    return model
+    return model, case_data
 end
 
 function compute_x̄tot_s(case_data::CaseData = CaseData())
