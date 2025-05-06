@@ -1,4 +1,4 @@
-using Parameters, JuMP, JSON3
+using Parameters, JuMP, JSON3, Dates, Statistics
 
 function n̲(n, Nr; N = 1:25)
     return max(first(N), n - Nr + 1)
@@ -89,6 +89,8 @@ xtot = Dict((r,n) => sum(x0[ri][i, n̲(n, first(N))] for i in I[r]) for (ri, r) 
     market::Market = full
     # Discount rate
     r::Float64 = r
+    # Gurobi parameters
+    grb_silent::Bool = false
 end
 
 @with_kw struct CaseDataOps
@@ -115,8 +117,63 @@ end
     market::Market = full
     # Investment decisions
     xtot = Containers.@container([r in R], xtot[r, first(N)])
-    # Initial state-of-charge
+    # Initial state-of-charge (ratio)
     y0::Union{Float64, Nothing} = nothing
     # Allow for load schedding
     load_shedding::Bool = true
+    # Gurobi parameters
+    grb_silent::Bool = false
+end
+
+function read_data(file_path)
+    open(file_path) do io
+        data = JSON3.read(io)
+        return data
+    end
+end
+
+function build_data_ops(; date::String = "peak", 
+    market::Market = full,
+    xtot::Containers.DenseAxisArray=Containers.DenseAxisArray([12.921, 74.000, 6.000], ["b", "g", "s"]),
+    y0::Union{Nothing, Float64} = nothing,
+    load_shedding::Bool = true,
+    grb_silent::Bool = true
+    )
+    # read general parameters
+    file_path = "data/nantucket.json"
+    file_data = read_data(file_path)
+    # read timeseries parameters
+    data_file = "data/Nantucket_2024.csv"
+    yearly_data = CSV.read(data_file, DataFrame)
+    # specify resources
+    R = ["b", "g", "s"]
+    D = ["g", "ℓ", "s"]
+    # date-independent parameters
+    pb = file_data["backup electricity price (\$/MWh)"][1]
+    pℓ = file_data["value of lost load (\$/MWh)"][1]
+    if date == "peak"
+        # based on the N days with highest load in that year, not on load growth projection
+        K = 1:24
+        N_days = 5
+        top_days = sort(combine(groupby(yearly_data, :Day), :"MW Factor" => maximum => :PeakLoad), :PeakLoad, rev=true)[1:N_days, :Day]
+        peak_day = combine(groupby(filter(row -> row.Day in top_days, yearly_data), :Hour), 
+        :"MW Factor" => maximum => :Load,
+        :"Price" => mean => :Price
+        )
+        ȳℓ = Containers.@container([k in K], peak_day[!, :Load][k])
+        pg = peak_day[!, :Price]
+    else
+        date_data = filter(row -> row.Day == Date(date, dateformat"yyyy-mm-dd"), yearly_data)
+        K = 1:nrow(date_data)
+        ȳℓ = Containers.@container([k in K], date_data[!, "MW Factor"][k])
+        pg = date_data[!, "Price"]
+    end
+    # set operating costs
+    ps = [ones(length(K)) * pb, pg, zeros(length(K))]
+    pd = [pg, ones(length(K)) * pℓ, zeros(length(K))]
+    ps = Dict((r,k) => ps[ri][k] for (ri, r) in enumerate(R), k in K)
+    pd = Dict((r,k) => pd[ri][k] for (ri, r) in enumerate(D), k in K)
+    return CaseDataOps(
+        K = K, ps = ps, pd = pd, ȳℓ = ȳℓ, market = market, xtot = xtot, y0 = y0, load_shedding = load_shedding, grb_silent = grb_silent
+    )
 end

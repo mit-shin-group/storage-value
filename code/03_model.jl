@@ -2,12 +2,12 @@ using JuMP, Gurobi, Setfield
 include("01_data.jl")
 include("02_peak_shaving_potential.jl")
 
-function build_model(case_data::CaseData = CaseData())
+function build_model(case_data::CaseData = CaseData(), env::Gurobi.Env = Gurobi.Env())
     # this function requires ["g"] in R and ["ℓ"] in D
     # unpack important data
     @unpack R, D, N, K, C, x̲, x̄, x0, I, Nr, ȳℓ, Δt, ηc, ηd, Ts, p, ps, pd, c0, T, market = case_data
-    # start modeling
-    model = Model()
+    # set Gurobi environment
+    model = Model(() -> Gurobi.Optimizer(env))
     # Decision variables
     @variable(model, x[r in R, n in N] >= 0)
     @variable(model, xtot[r in R, n in N, c in C] >= 0)
@@ -68,17 +68,16 @@ function build_model(case_data::CaseData = CaseData())
     return model
 end
 
-function build_model(case_data::CaseDataOps = CaseDataOps())
+function build_model(case_data::CaseDataOps = CaseDataOps(), env::Gurobi.Env = Gurobi.Env())
     # this function requires ["g"] in R and ["ℓ"] in D
     # unpack important data
     @unpack R, D, K, ȳℓ, Δt, ηc, ηd, Ts, ps, pd, market, xtot, y0, load_shedding = case_data
-    # start modeling
-    model = Model()
+    model = Model(() -> Gurobi.Optimizer(env))
     # Decision variables
     @variable(model, ys[r in R, k in K] >= 0)
     @variable(model, yd[r in D, k in K] >= 0)
     if isnothing(y0) & ("s" in R)
-        @variable(model, 0 <= y0 <= Ts * xtot["s"])
+        @variable(model, 0 <= y0 <= 1)
     end
     # constraints
     # - balance
@@ -94,8 +93,8 @@ function build_model(case_data::CaseDataOps = CaseDataOps())
     end
     if "s" in R
         # - state-of-charge bounds
-        @constraint(model, [r in ["s"], k in first(K) - 1:last(K)], y0 + Δt * sum(ηc * yd[r,l] - ys[r,l]/ηd for l = first(K) : k; init = 0) <= Ts * xtot[r])
-        @constraint(model, [r in ["s"], k in first(K) - 1:last(K)], y0 + Δt * sum(ηc * yd[r,l] - ys[r,l]/ηd for l = first(K) : k; init = 0) >= 0)
+        @constraint(model, [r in ["s"], k in first(K) - 1:last(K)], y0 * Ts * xtot["s"] + Δt * sum(ηc * yd[r,l] - ys[r,l]/ηd for l = first(K) : k; init = 0) <= Ts * xtot[r])
+        @constraint(model, [r in ["s"], k in first(K) - 1:last(K)], y0 * Ts * xtot["s"] + Δt * sum(ηc * yd[r,l] - ys[r,l]/ηd for l = first(K) : k; init = 0) >= 0)
         # - state of charge balance
         @constraint(model, [r in ["s"]], sum(ηc * yd[r,k] - ys[r,k]/ηd for k in K) >= 0)
     end
@@ -127,9 +126,13 @@ function build_model(case_data::CaseDataOps = CaseDataOps())
     return model
 end
 
-function run_model(case_data::Union{CaseData, CaseDataOps} = CaseData())
-    model = build_model(case_data)
-    set_optimizer(model, Gurobi.Optimizer)
+function run_model(case_data::Union{CaseData, CaseDataOps} = CaseData(), env::Gurobi.Env = Gurobi.Env())
+    model = build_model(case_data, env)
+    if case_data.grb_silent
+        set_silent(model)
+        set_optimizer_attribute(model, "OutputFlag", 0)
+    end
+    # set_optimizer(model, Gurobi.Optimizer)
     optimize!(model)
     return model, case_data
 end

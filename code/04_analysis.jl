@@ -100,7 +100,8 @@ function analysis(model::Model; case_data::CaseData = CaseData(), print_result::
     return result_dict
 end
 
-function analysis_ops(model_data::Tuple{Model, CaseDataOps}; print_result::Bool = true)
+function analysis_ops(model_data::Tuple{Model, CaseDataOps}; print_result::Bool = true, save_result::Union{Nothing, String} = nothing)  
+    # unpack model data
     model = model_data[1]
     case_data = model_data[2]
     @unpack R, K, D, market, load_shedding, ps, pd, Δt, xtot, Ts, ȳℓ = case_data;
@@ -108,10 +109,50 @@ function analysis_ops(model_data::Tuple{Model, CaseDataOps}; print_result::Bool 
     ys = value.(model[:ys])
     yd = value.(model[:yd])
     if "s" in R
-        y0 = value(model[:y0])/(Ts * xtot["s"])
+        if isnothing(case_data.y0)
+            y0 = value(model[:y0])
+        else
+            y0 = case_data.y0
+        end
     else
         y0 = 0.
     end
+
+    # parse JuMP data
+    ys_dict = Dict()
+    yd_dict = Dict()
+    for r in R
+        ys_dict[r] = ys[r, :].data
+    end
+    for r in D
+        yd_dict[r] = yd[r, :].data
+    end
+
+    # build result_dict
+    result_dict = Dict(
+        "ys" => ys_dict,
+        "yd" => yd_dict,
+        "y0" => y0,
+        "objective_value" => objective_value(model),
+        "solve_time" => solve_time(model),
+        "relative_gap" => Bool(MOI.get(model, Gurobi.ModelAttribute("IsMIP"))) ? relative_gap(model) : 0.,
+        "operating_cost" => Δt * sum( sum(ps[r,k] * ys[r,k] for r in R) 
+        - sum(pd[r,k] * yd[r,k] for r in setdiff(D, ["ℓ"])) 
+        +  pd["ℓ",k] * (ȳℓ[k] - yd["ℓ",k])
+        for k in K)
+    )
+
+    # prepare case_data for saving
+    case_dict = Dict(field => getfield(case_data, field) for field in fieldnames(typeof(case_data)))
+    xtot_dict = Dict()
+    for r in R
+        xtot_dict[r] = xtot[r]
+    end
+    case_dict[:xtot] = xtot_dict
+    case_dict[:ȳℓ] = ȳℓ.data
+    
+
+    # printing
     if print_result
         for r in ["b", "g", "s"] 
             println(r in R ? xtot[r] : 0.)
@@ -163,4 +204,16 @@ function analysis_ops(model_data::Tuple{Model, CaseDataOps}; print_result::Bool 
             println(r in D ? Δt * sum(pd[r, k] * yd[r, k] for k in K) : 0.)
         end
     end
+
+    # save result
+    if !isnothing(save_result)
+        open(save_result * "_result.json", "w") do io
+            JSON3.write(io, result_dict)
+        end
+        open(save_result * "_case.json", "w") do io
+            JSON3.write(io, case_dict)            
+        end
+    end
+
+    return result_dict, case_dict
 end
