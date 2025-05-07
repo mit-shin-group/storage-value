@@ -1,0 +1,223 @@
+using JSON3
+using DataFrames
+using Plots
+using Dates
+using CSV
+
+# result parameters
+dates_file = "code/06_dates.txt"
+experiment_list = ["full base", "full contingency", "peak shaving base", "peak shaving contingency"]
+
+function daily_results(dates_file::String = "code/06_dates.txt", experiment_list::Vector{String} = ["full base", "full contingency", "peak shaving base", "peak shaving contingency"])
+    # Load dates from file
+    dates = readlines(dates_file)
+    # Initialize an empty dict
+    results = Dict()
+    # Loop over experiments
+    for experiment in experiment_list
+        # Initialize an empty DataFrame
+        results_df = DataFrame(date=String[], operating_cost=Float64[], load_shed=Float64[], yss=Float64[], ysb = Float64[], ysg = Float64[], yds = Float64[], ydℓ = Float64[])
+        # Loop through each date and load the operating cost
+        for date in dates
+            if experiment == "full base"
+                market = "no_exports"
+                grid = "74.0"
+            elseif experiment == "full contingency"
+                market = "no_exports"
+                grid = "36.0"
+            elseif experiment == "peak shaving base"
+                market = "peak_shaving"
+                grid = "74.0"
+            elseif experiment == "peak shaving contingency"
+                market = "peak_shaving"
+                grid = "36.0"
+            else
+                error("Invalid experiment type: $experiment")
+            end
+            # Construct the file path
+            json_file = joinpath("results", "ops", "2024_" * market * "_" * grid * "g_6.0s_12.921b", "$(date)_result.json")
+            if isfile(json_file)
+                data = JSON3.read(json_file)
+                operating_cost = get(data, "operating_cost", missing)
+                load_shed = get(data, "load_shed", missing)
+                ys = get(data, "ys", missing)
+                yd = get(data, "yd", missing)
+                if (operating_cost !== missing) & (load_shed !== missing) & (ys !== missing) & (yd !== missing)
+                    push!(results_df, (date, operating_cost, load_shed, sum(ys["s"]), sum(ys["b"]), sum(ys["g"]), sum(yd["s"]), sum(yd["ℓ"])))
+                else
+                    println("Warning: 'operating_cost', 'load shed', 'ys', or 'yd' not found in $json_file")
+                end
+            else
+                println("Warning: File $json_file does not exist")
+            end
+        end
+        # Convert dates to Date objects for better formatting
+        results_df.date = Date.(results_df.date, "yyyy-mm-dd")
+        results[experiment] = results_df
+    end
+    return results
+end
+
+function yearly_opex(dates_file::String = "code/06_dates.txt", experiment_list::Vector{String} = ["full base", "full contingency", "peak shaving base", "peak shaving contingency"])
+    # Load dates from file
+    dates = readlines(dates_file)
+    # Create a DataFrame to store the results
+    s_values = 0.0:15.0
+    summary_df = DataFrame(Symbol("s")=>Float64[], Symbol("full base")=>Float64[], Symbol("full contingency")=>Float64[], Symbol("peak shaving base")=>Float64[], Symbol("peak shaving contingency")=>Float64[])
+    # Loop over s values
+    for s in s_values
+        row = Dict(:s => s)
+        for experiment in experiment_list
+            if experiment == "full base"
+                market = "no_exports"
+                grid = "74.0"
+            elseif experiment == "full contingency"
+                market = "no_exports"
+                grid = "36.0"
+            elseif experiment == "peak shaving base"
+                market = "peak_shaving"
+                grid = "74.0"
+            elseif experiment == "peak shaving contingency"
+                market = "peak_shaving"
+                grid = "36.0"
+            else
+                error("Invalid experiment type: $experiment")
+            end
+
+            # Construct the directory path
+            dir_path = joinpath("results", "ops", "2024_" * market * "_" * grid * "g_$(s)s_12.921b")
+
+            # Print progress
+            println("Processing: $dir_path")
+            # Initialize the total cost
+            total_cost = 0.0
+
+            # Loop through each date and sum the operating costs
+            for date in dates
+                json_file = joinpath(dir_path, "$(date)_result.json")
+                if isfile(json_file)
+                    data = JSON3.read(json_file)
+                    operating_cost = get(data, "operating_cost", missing)
+                    if operating_cost !== missing
+                        total_cost += operating_cost
+                    else
+                        println("Warning: 'operating_cost' not found in $json_file")
+                    end
+                else
+                    println("Warning: File $json_file does not exist")
+                end
+            end
+
+            # Add the total cost to the row
+            row[Symbol(experiment)] = total_cost
+        end
+
+        # Push the row to the DataFrame
+        push!(summary_df, row)
+    end
+    return summary_df
+end
+
+# CSV.write("results/ops/2024_opex_vs_storage.csv", df, writeheader=true, delim=",")
+
+# Prints costs
+function print_costs(results)
+    for experiment in keys(results)
+        results_df = results[experiment]
+        println("Experiment: $experiment")
+        println("Operating cost: $(round(sum(results_df.operating_cost)/1000)) k\$")
+        println("Load shed: $(round(sum(results_df.load_shed)/1000, digits = 3)) GWh")
+    end
+end
+
+# Plot results
+# --- operating cost ---
+function plot_operating_cost(results; experiment_list = experiment_list)
+    for experiment in experiment_list
+        results_df = results[experiment]
+        if experiment == first(experiment_list)
+            plot(results_df.date, results_df.operating_cost/1000,
+                # title="Operating Cost Over Time",
+                xlabel="Date",
+                ylabel="Daily Operating Cost (k\$)",
+                xticks=(results_df.date[1:30:end], Dates.format.(results_df.date[1:30:end], "mm-dd")),
+                label=experiment,
+                #  legend=:topright,
+                #  marker=:o,
+                grid=true,
+            )
+        else
+            plot!(results_df.date, results_df.operating_cost/1000,
+                #  title="Operating Cost Over Time",
+                xlabel="Date",
+                ylabel="Daily Operating Cost (k\$)",
+                xticks=(results_df.date[1:30:end], Dates.format.(results_df.date[1:30:end], "mm-dd")),
+                label=experiment,
+                #  legend=:topright,
+                #  marker=:o,
+                grid=true,
+            )
+        end
+    end
+    display(current())
+end
+
+# --- supply mix ---
+# Plot supply mix
+function plot_supply_mix(results_df)
+    plot(results_df.date, results_df.ysg, 
+        xlabel="Date",
+        ylabel="Supply Mix",
+        xticks=(results_df.date[1:30:end], Dates.format.(results_df.date[1:30:end], "mm-dd")),
+        label="Grid",
+        alpha=0.25,
+        color=:gray,
+        lw=0.1,
+        grid=true,
+        fill_between=(zeros(length(results_df.ysb)), results_df.ysg)
+    )
+
+    plot!(results_df.date, results_df.ysg .+ results_df.yds, 
+        label="Storage",
+        color=:green,
+        lw=0.1,
+        fill_between=(results_df.ysg, results_df.ysg .+ results_df.yds)
+    )
+
+    plot!(results_df.date, results_df.ysb .+ results_df.yds .+ results_df.ysg, 
+        label="Backup",
+        color=:orange,
+        lw=0.1,
+        fill_between=(results_df.ysg .+ results_df.yds, results_df.ysb .+ results_df.yds .+ results_df.ysg)
+    )
+
+    plot!(results_df.date, results_df.ysb .+ results_df.yds .+ results_df.ysg .+ results_df.load_shed, 
+        label="Lost load",
+        color=:blue,
+        lw=0.1,
+        fill_between=(results_df.ysg .+ results_df.yds .+ results_df.ysb, results_df.ysb .+ results_df.yds .+ results_df.ysg .+ results_df.load_shed)
+    )
+
+    plot!(results_df.date, results_df.ydℓ, 
+        label="Load",
+        color=:red,
+        lw=1.5,
+        # seriestype=:scatter
+    )
+end
+
+function plot_opex_vs_storage(df::DataFrame, experiment_list::Vector{String} = ["full base", "full contingency", "peak shaving base", "peak shaving contingency"])
+    # Plot the operating cost vs storage
+    plot(df.s, df[!, experiment_list[1]]/1e6, 
+        xlabel="Storage (s)",
+        ylabel="Operating Cost (M\$)",
+        title="Operating Cost vs Storage",
+        label=experiment_list[1],
+        color=:blue,
+        grid=true,
+    )
+    for i in 2:length(experiment_list)
+        plot!(df.s, df[!, experiment_list[i]]/1e6, label=experiment_list[i], color=i)
+    end
+    display(current())
+end

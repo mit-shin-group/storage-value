@@ -1,6 +1,6 @@
 using JuMP, OffsetArrays
 
-# include("01_data.jl")
+include("01_data.jl")
 
 function analysis(model::Model; case_data::CaseData = CaseData(), print_result::Bool = true)
     @unpack K, N, C, ȳℓ, p, c0, T, ps, pd, r = case_data;
@@ -139,7 +139,8 @@ function analysis_ops(model_data::Tuple{Model, CaseDataOps}; print_result::Bool 
         "operating_cost" => Δt * sum( sum(ps[r,k] * ys[r,k] for r in R) 
         - sum(pd[r,k] * yd[r,k] for r in setdiff(D, ["ℓ"])) 
         +  pd["ℓ",k] * (ȳℓ[k] - yd["ℓ",k])
-        for k in K)
+        for k in K),
+        "load_shed" => Δt * sum(ȳℓ - yd["ℓ", :]),
     )
 
     # prepare case_data for saving
