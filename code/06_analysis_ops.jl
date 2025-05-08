@@ -168,6 +168,7 @@ end
 # Plots.scalefontsizes(α)
 # default(fontfamily="Arial")
 # savefig("results/ops/2024_no_exports_36.0g_6.0s_12.921b/supply.svg")
+# savefig("results/ops/2024_peak_shaving_36.0g_6.0s_12.921b/supply.svg")
 
 # --- supply mix ---
 # Plot supply mix
@@ -180,7 +181,7 @@ function plot_supply_mix(results_df)
         label="Grid",
         alpha=0.5,
         color=:gray,
-        lw=0.1,
+        lw=0,
         grid=true,
         fill_between=(zeros(length(results_df.ysb)), results_df.ysg),
         ylim=(0,1250),
@@ -189,21 +190,21 @@ function plot_supply_mix(results_df)
     plot!(results_df.date, results_df.ysg .+ results_df.yds, 
         label="Storage",
         color=:green,
-        lw=0.1,
+        lw=0,
         fill_between=(results_df.ysg, results_df.ysg .+ results_df.yds)
     )
 
     plot!(results_df.date, results_df.ysb .+ results_df.yds .+ results_df.ysg, 
         label="Backup",
         color=:orange,
-        lw=0.1,
+        lw=0,
         fill_between=(results_df.ysg .+ results_df.yds, results_df.ysb .+ results_df.yds .+ results_df.ysg)
     )
 
     plot!(results_df.date, results_df.ysb .+ results_df.yds .+ results_df.ysg .+ results_df.load_shed, 
         label="Lost load",
         color=:blue,
-        lw=0.1,
+        lw=0,
         fill_between=(results_df.ysg .+ results_df.yds .+ results_df.ysb, results_df.ysb .+ results_df.yds .+ results_df.ysg .+ results_df.load_shed)
     )
 
