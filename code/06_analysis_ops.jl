@@ -119,6 +119,7 @@ function yearly_opex(dates_file::String = "code/06_dates.txt", experiment_list::
 end
 
 # CSV.write("results/ops/2024_opex_vs_storage.csv", df, writeheader=true, delim=",")
+# df = CSV.read("results/ops/2024_opex_vs_storage.csv", DataFrame)
 
 # Prints costs
 function print_costs(results)
@@ -127,6 +128,7 @@ function print_costs(results)
         println("Experiment: $experiment")
         println("Operating cost: $(round(sum(results_df.operating_cost)/1000)) k\$")
         println("Load shed: $(round(sum(results_df.load_shed)/1000, digits = 3)) GWh")
+        println("Storage supply: $(round(sum(results_df.yss)/1000, digits = 3)) GWh") 
     end
 end
 
@@ -162,19 +164,26 @@ function plot_operating_cost(results; experiment_list = experiment_list)
     display(current())
 end
 
+# Option to change font sizes if necessary
+# Plots.scalefontsizes(α)
+# default(fontfamily="Arial")
+# savefig("results/ops/2024_no_exports_36.0g_6.0s_12.921b/supply.svg")
+
 # --- supply mix ---
 # Plot supply mix
 function plot_supply_mix(results_df)
+    day_month = [1, 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 30]
     plot(results_df.date, results_df.ysg, 
-        xlabel="Date",
-        ylabel="Supply Mix",
-        xticks=(results_df.date[1:30:end], Dates.format.(results_df.date[1:30:end], "mm-dd")),
+        # xlabel="Date",
+        ylabel="Supply (MWh)",
+        xticks=(results_df.date[cumsum(day_month)[1:2:end]], Dates.format.(results_df.date[cumsum(day_month)[1:2:end]], "mm-dd")),
         label="Grid",
-        alpha=0.25,
+        alpha=0.5,
         color=:gray,
         lw=0.1,
         grid=true,
-        fill_between=(zeros(length(results_df.ysb)), results_df.ysg)
+        fill_between=(zeros(length(results_df.ysb)), results_df.ysg),
+        ylim=(0,1250),
     )
 
     plot!(results_df.date, results_df.ysg .+ results_df.yds, 
@@ -200,8 +209,8 @@ function plot_supply_mix(results_df)
 
     plot!(results_df.date, results_df.ydℓ, 
         label="Load",
-        color=:red,
-        lw=1.5,
+        color=:black,
+        lw=1.7
         # seriestype=:scatter
     )
 end
@@ -209,15 +218,55 @@ end
 function plot_opex_vs_storage(df::DataFrame, experiment_list::Vector{String} = ["full base", "full contingency", "peak shaving base", "peak shaving contingency"])
     # Plot the operating cost vs storage
     plot(df.s, df[!, experiment_list[1]]/1e6, 
-        xlabel="Storage (s)",
-        ylabel="Operating Cost (M\$)",
-        title="Operating Cost vs Storage",
+        xlabel="Storage Capacity (MW)",
+        ylabel="2024 Operating Cost (M\$)",
+        # title="Operating Cost vs Storage",
         label=experiment_list[1],
         color=:blue,
         grid=true,
+        ylim = (7, 11),
+        xlim= (0, 15)
     )
     for i in 2:length(experiment_list)
         plot!(df.s, df[!, experiment_list[i]]/1e6, label=experiment_list[i], color=i)
     end
+    display(current())
+end
+
+function plot_opex_vs_storage_manual(df::DataFrame, experiment_list::Vector{String} = ["full base", "full contingency", "peak shaving base", "peak shaving contingency"])
+    # Plot the operating cost vs storage
+    plot(df.s, df[!, "peak shaving contingency"]/1e6, 
+        xlabel="Storage Capacity (MW)",
+        ylabel="2024 Operating Cost (M\$)",
+        # title="Operating Cost vs Storage",
+        label="Peak shaving only",
+        color=:black,
+        lw = 1.5,
+        grid=true,
+        ylim = (8, 11),
+        xlim= (0, 15)
+    )
+
+    plot!(df.s, df[!, "full contingency"]/1e6, 
+    label="Peak shaving + Arbitrage",
+    color=:red,
+    lw = 1.5,
+    )
+
+    # add values
+    plot!(df.s[[1, end]], [df[!, "peak shaving contingency"][1], (df[!, "peak shaving contingency"][2] - df[!, "peak shaving contingency"][1]) * (df[!, "s"][end] - df[!, "s"][1]) + df[!, "peak shaving contingency"][1]]/1e6,
+    color=:black,
+    lw = 1.2,
+    ls = :dash,
+    label = "Grid value < \$250/kW"
+    )
+
+    plot!(df.s[[1, end]], [(df[!, "full contingency"][end-1] - df[!, "full contingency"][end]) * (df[!, "s"][end] - df[!, "s"][1]) + df[!, "full contingency"][end], df[!, "full contingency"][end]]/1e6,
+    color=:red,
+    lw = 1.2,
+    ls = :dash,
+    label = "Market value > \$45/kW"
+    )
+
     display(current())
 end
