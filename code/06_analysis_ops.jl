@@ -62,7 +62,7 @@ function yearly_opex(dates_file::String = "code/06_dates.txt", experiment_list::
     # Load dates from file
     dates = readlines(dates_file)
     # Create a DataFrame to store the results
-    s_values = 0.0:15.0
+    s_values = vcat(collect(0.0:15.0), [20.0, 25.0, 50.0, 100.0]) 
     summary_df = DataFrame(Symbol("s")=>Float64[], Symbol("full base")=>Float64[], Symbol("full contingency")=>Float64[], Symbol("peak shaving base")=>Float64[], Symbol("peak shaving contingency")=>Float64[])
     # Loop over s values
     for s in s_values
@@ -225,8 +225,8 @@ function plot_opex_vs_storage(df::DataFrame, experiment_list::Vector{String} = [
         label=experiment_list[1],
         color=:blue,
         grid=true,
-        ylim = (7, 11),
-        xlim= (0, 15)
+        ylim = (5, 11),
+        xlim= (0, 70)
     )
     for i in 2:length(experiment_list)
         plot!(df.s, df[!, experiment_list[i]]/1e6, label=experiment_list[i], color=i)
