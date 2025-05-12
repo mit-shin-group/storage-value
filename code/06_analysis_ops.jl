@@ -62,7 +62,8 @@ function yearly_opex(dates_file::String = "code/06_dates.txt", experiment_list::
     # Load dates from file
     dates = readlines(dates_file)
     # Create a DataFrame to store the results
-    s_values = vcat(collect(0.0:15.0), [20.0, 25.0, 50.0, 100.0]) 
+    # s_values = vcat(collect(0.0:15.0), [20.0, 25.0, 50.0, 100.0]) 
+    s_values = 0.0:50.0
     summary_df = DataFrame(Symbol("s")=>Float64[], Symbol("full base")=>Float64[], Symbol("full contingency")=>Float64[], Symbol("peak shaving base")=>Float64[], Symbol("peak shaving contingency")=>Float64[])
     # Loop over s values
     for s in s_values
@@ -169,6 +170,7 @@ end
 # default(fontfamily="Arial")
 # savefig("results/ops/2024_no_exports_36.0g_6.0s_12.921b/supply.svg")
 # savefig("results/ops/2024_peak_shaving_36.0g_6.0s_12.921b/supply.svg")
+# savefig("results/ops/2024_opex_vs_storage_50.svg") 
 
 # --- supply mix ---
 # Plot supply mix
@@ -216,22 +218,41 @@ function plot_supply_mix(results_df)
     )
 end
 
-function plot_opex_vs_storage(df::DataFrame, experiment_list::Vector{String} = ["full base", "full contingency", "peak shaving base", "peak shaving contingency"])
+function plot_opex_vs_storage(df::DataFrame, experiment_list::Vector{String} = ["peak shaving base", "peak shaving contingency", "full base", "full contingency"])
+    color_list = [:black, :black, :red, :red]
+    style_list = [:solid, :dash, :solid, :dash]
     # Plot the operating cost vs storage
     plot(df.s, df[!, experiment_list[1]]/1e6, 
         xlabel="Storage Capacity (MW)",
         ylabel="2024 Operating Cost (M\$)",
         # title="Operating Cost vs Storage",
         label=experiment_list[1],
-        color=:blue,
+        color=:black,
         grid=true,
-        ylim = (5, 11),
-        xlim= (0, 70)
+        ylim = (6, 11.5),
+        xlim= (0, 50),
+        lw = 1.5,
+        ls = :solid,
     )
     for i in 2:length(experiment_list)
-        plot!(df.s, df[!, experiment_list[i]]/1e6, label=experiment_list[i], color=i)
+        plot!(df.s, df[!, experiment_list[i]]/1e6, label=experiment_list[i], color=color_list[i], lw = 1.5, ls = style_list[i])
     end
     display(current())
+
+    # add values
+    plot!(df.s[[1, end]], [df[!, "full base"][1], (df[!, "full base"][2] - df[!, "full base"][1]) * (df[!, "s"][end] - df[!, "s"][1]) + df[!, "full base"][1]]/1e6,
+    color=:black,
+    lw = 1.2,
+    ls = :dashdot,
+    label = "Market value < \$65/kW"
+    )
+
+    plot!(df.s[[1, end]], [df[!, "peak shaving contingency"][1], (df[!, "peak shaving contingency"][2] - df[!, "peak shaving contingency"][1]) * (df[!, "s"][end] - df[!, "s"][1]) + df[!, "peak shaving contingency"][1]]/1e6,
+    color=:red,
+    lw = 1.2,
+    ls = :dashdot,
+    label = "Grid value < \$250/kW"
+    )
 end
 
 function plot_opex_vs_storage_manual(df::DataFrame, experiment_list::Vector{String} = ["full base", "full contingency", "peak shaving base", "peak shaving contingency"])
