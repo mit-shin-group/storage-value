@@ -8,7 +8,7 @@ using CSV
 dates_file = "code/06_dates.txt"
 experiment_list = ["full base", "full contingency", "peak shaving base", "peak shaving contingency"]
 
-function daily_results(dates_file::String = "code/06_dates.txt", experiment_list::Vector{String} = ["full base", "full contingency", "peak shaving base", "peak shaving contingency"])
+function daily_results(dates_file::String = "code/06_dates.txt", experiment_list::Vector{String} = ["full base", "full contingency", "peak shaving base", "peak shaving contingency", "no storage full base", "no storage full contingency", "no storage peak shaving base", "no storage peak shaving contingency"])
     # Load dates from file
     dates = readlines(dates_file)
     # Initialize an empty dict
@@ -22,20 +22,40 @@ function daily_results(dates_file::String = "code/06_dates.txt", experiment_list
             if experiment == "full base"
                 market = "no_exports"
                 grid = "74.0"
+                storage = "6.0"
             elseif experiment == "full contingency"
                 market = "no_exports"
                 grid = "36.0"
+                storage = "6.0"
             elseif experiment == "peak shaving base"
                 market = "peak_shaving"
                 grid = "74.0"
+                storage = "6.0"
             elseif experiment == "peak shaving contingency"
                 market = "peak_shaving"
                 grid = "36.0"
+                storage = "6.0"
+            elseif experiment == "no storage full base"
+                market = "no_exports"
+                grid = "74.0"
+                storage = "0.0"
+            elseif experiment == "no storage full contingency"
+                market = "no_exports"
+                grid = "36.0"
+                storage = "0.0"
+            elseif experiment == "no storage peak shaving base"
+                market = "peak_shaving"
+                grid = "74.0"
+                storage = "0.0"
+            elseif experiment == "no storage peak shaving contingency"
+                market = "peak_shaving"
+                grid = "36.0"
+                storage = "0.0"                
             else
                 error("Invalid experiment type: $experiment")
             end
             # Construct the file path
-            json_file = joinpath("results", "ops", "2024_" * market * "_" * grid * "g_6.0s_12.921b", "$(date)_result.json")
+            json_file = joinpath("results", "ops", "2024_" * market * "_" * grid * "g_" * storage * "s_12.921b", "$(date)_result.json")
             if isfile(json_file)
                 data = JSON3.read(json_file)
                 operating_cost = get(data, "operating_cost", missing)
@@ -159,6 +179,84 @@ function plot_operating_cost(results; experiment_list = experiment_list)
                 #  legend=:topright,
                 #  marker=:o,
                 grid=true,
+            )
+        end
+    end
+    display(current())
+end
+
+# --- ecdf cycles ---
+function plot_ecdf_cycles(results; experiment_list = experiment_list)
+    for experiment in experiment_list
+        results_df = results[experiment]
+        # Sort the cycles
+        sorted_cycles = sort(results_df.yss)/48
+        if experiment == first(experiment_list)
+            # Plot the ECDF of cycles
+            plot(sorted_cycles, collect(1:length(sorted_cycles))/length(sorted_cycles),
+                # title="ECDF of Cycles",
+                xlabel="Daily Cycles (-)",
+                ylabel="Empirical Probability (-)",
+                label=experiment,
+                grid=true,
+                ylim = (0, 1),
+                xlim= (0, 1.5),
+                lw = 1.2
+            )
+        else
+            plot!(sorted_cycles, collect(1:length(sorted_cycles))/length(sorted_cycles),
+                # title="ECDF of Cycles",
+                xlabel="Daily Cycles (-)",
+                ylabel="Empirical Probability (-)",
+                label=experiment,
+                grid=true,
+                ylim = (-0.05, 1.05),
+                xlim= (-0.075, 1.5),
+                lw = 1.2
+            )
+        end
+    end
+    display(current())
+end
+
+# value of storage
+function plot_value_of_storage(results; experiment_list = ["full base", "full contingency", "peak shaving base", "peak shaving contingency"])
+    for experiment in experiment_list
+        results_df = results[experiment]
+        # Sort the operating costs
+        if experiment == "full base"
+            sorted_value = sort(results["no storage full base"].operating_cost - results_df.operating_cost)
+        elseif experiment == "full contingency"
+            sorted_value = sort(results["no storage full contingency"].operating_cost - results_df.operating_cost)
+        elseif experiment == "peak shaving base"
+            sorted_value = sort(results["no storage peak shaving base"].operating_cost - results_df.operating_cost)
+        elseif experiment == "peak shaving contingency"
+            sorted_value = sort(results["no storage peak shaving contingency"].operating_cost - results_df.operating_cost)
+        else
+            error("Invalid experiment type: $experiment")
+        end
+        # Plot the value of storage
+        if experiment == first(experiment_list) 
+            plot(sorted_value/1000, collect(1:length(sorted_value))/length(sorted_value),
+                # title="Value of Storage",
+                xlabel="Value of Storage (k\$)",
+                ylabel="Empirical Probability (-)",
+                label=experiment,
+                grid=true,
+                ylim = (-0.05, 1.05),
+                # xlim= (0, ),
+                lw = 1.2
+            )
+        else
+             plot!(sorted_value/1000, collect(1:length(sorted_value))/length(sorted_value),
+                # title="Value of Storage",
+                xlabel="Value of Storage (k\$)",
+                ylabel="Empirical Probability (-)",
+                label=experiment,
+                grid=true,
+                ylim = (-0.05, 1.05),
+                # xlim= (0, ),
+                lw = 1.2
             )
         end
     end

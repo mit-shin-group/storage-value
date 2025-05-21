@@ -1,5 +1,7 @@
 using JSON3, CSV, DataFrames
 
+include("01_data.jl")
+
 # read standard data
 file_path = "data/nantucket.json"
 function read_data(file_path)
