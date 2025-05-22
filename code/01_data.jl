@@ -1,4 +1,4 @@
-using Parameters, JuMP, JSON3, Dates, Statistics, CSV
+using Parameters, JuMP, JSON3, Dates, Statistics, CSV, DataFrames
 
 function n̲(n, Nr; N = 1:25)
     return max(first(N), n - Nr + 1)
@@ -85,6 +85,8 @@ xtot = Dict((r,n) => sum(x0[ri][i, n̲(n, first(N))] for i in I[r]) for (ri, r) 
     ηd::Float64 = 0.92
     # Storage duration
     Ts::Float64 = 8.
+    # Max number of storage cycles per planning period
+    Cs::Float64 = 150.
     # Market participation
     market::Market = full
     # Discount rate
@@ -113,6 +115,8 @@ end
     ηd::Float64 = 0.92
     # Storage duration
     Ts::Float64 = 8.
+    # Max number of storage cycles per planning period
+    Cs::Float64 = 150.
     # Market participation
     market::Market = full
     # Investment decisions
@@ -162,6 +166,10 @@ function build_data_ops(; date::String = "peak",
         )
         ȳℓ = Containers.@container([k in K], peak_day[!, :Load][k])
         pg = peak_day[!, :Price]
+    elseif date == "year"
+        K = 1:nrow(yearly_data)
+        ȳℓ = Containers.@container([k in K], yearly_data[!, "MW Factor"][k])
+        pg = yearly_data[!, "Price"]
     else
         date_data = filter(row -> row.Day == Date(date, dateformat"yyyy-mm-dd"), yearly_data)
         K = 1:nrow(date_data)

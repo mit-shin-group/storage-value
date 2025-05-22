@@ -37,10 +37,21 @@ function build_model(case_data::CaseData = CaseData(), env::Gurobi.Env = Gurobi.
     end
     if "s" in R
         # - state-of-charge bounds
-        @constraint(model, [r in ["s"], n in N, k in first(K) - 1:last(K), c in C], y0[n] + Δt * sum(ηc * yd[r,n,l,c] - ys[r,n,l,c]/ηd for l = first(K) : k; init = 0) <= Ts * xtot[r,n,c])
-        @constraint(model, [r in ["s"], n in N, k in first(K) - 1:last(K), c in C], y0[n] + Δt * sum(ηc * yd[r,n,l,c] - ys[r,n,l,c]/ηd for l = first(K) : k; init = 0) >= 0)
+        cumsum_expr = []
+        acc = AffExpr()
+        for k in K
+            add_to_expression!(acc, ηc * yd["s", k])
+            add_to_expression!(acc, -ys["s", k] / ηd)
+            push!(cumsum_expr, Δt * acc)
+        end
+        for (i, k) in enumerate(K)
+            @constraint(model, y0 * Ts * xtot["s"] + cumsum_expr[i] <= Ts * xtot["s"])
+            @constraint(model, y0 * Ts * xtot["s"] + cumsum_expr[i] >= 0)
+        end
         # - state of charge balance
-        @constraint(model, [r in ["s"], n in N, c in C], sum(ηc * yd[r,n,k,c] - ys[r,n,k,c]/ηd for k in K) >= 0)
+        @constraint(model, [r in ["s"]], cumsum_expr[end] >= 0)
+        # - discharge limit
+        @constraint(model, [n in N, c in C], sum(ys["s",n,k,c] for k in K)/ηd <= Cs * Ts * xtot["s"])
     end
     # - market participation
     if market == no_exports
@@ -71,7 +82,7 @@ end
 function build_model(case_data::CaseDataOps = CaseDataOps(), env::Gurobi.Env = Gurobi.Env())
     # this function requires ["g"] in R and ["ℓ"] in D
     # unpack important data
-    @unpack R, D, K, ȳℓ, Δt, ηc, ηd, Ts, ps, pd, market, xtot, y0, load_shedding = case_data
+    @unpack R, D, K, ȳℓ, Δt, ηc, ηd, Ts, ps, pd, market, xtot, y0, load_shedding, Cs = case_data
     model = Model(() -> Gurobi.Optimizer(env))
     # Decision variables
     @variable(model, ys[r in R, k in K] >= 0)
@@ -93,10 +104,21 @@ function build_model(case_data::CaseDataOps = CaseDataOps(), env::Gurobi.Env = G
     end
     if "s" in R
         # - state-of-charge bounds
-        @constraint(model, [r in ["s"], k in first(K) - 1:last(K)], y0 * Ts * xtot["s"] + Δt * sum(ηc * yd[r,l] - ys[r,l]/ηd for l = first(K) : k; init = 0) <= Ts * xtot[r])
-        @constraint(model, [r in ["s"], k in first(K) - 1:last(K)], y0 * Ts * xtot["s"] + Δt * sum(ηc * yd[r,l] - ys[r,l]/ηd for l = first(K) : k; init = 0) >= 0)
+        cumsum_expr = []
+        acc = AffExpr()
+        for k in K
+            add_to_expression!(acc, ηc * yd["s", k])
+            add_to_expression!(acc, -ys["s", k] / ηd)
+            push!(cumsum_expr, Δt * acc)
+        end
+        for (i, k) in enumerate(K)
+            @constraint(model, y0 * Ts * xtot["s"] + cumsum_expr[i] <= Ts * xtot["s"])
+            @constraint(model, y0 * Ts * xtot["s"] + cumsum_expr[i] >= 0)
+        end
         # - state of charge balance
-        @constraint(model, [r in ["s"]], sum(ηc * yd[r,k] - ys[r,k]/ηd for k in K) >= 0)
+        @constraint(model, [r in ["s"]], cumsum_expr[end] >= 0)
+        # - discharge limit
+        @constraint(model, sum(ys["s",k] for k in K)/ηd <= Cs * Ts * xtot["s"])
     end
     # - market participation
     if market == no_exports
