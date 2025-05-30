@@ -2,10 +2,10 @@ using JuMP, Gurobi, Setfield
 include("01_data.jl")
 include("02_peak_shaving_potential.jl")
 
-function build_model(case_data::CaseData = CaseData(), env::Gurobi.Env = Gurobi.Env())
+function build_model(case_data::CaseDataPlan; env::Gurobi.Env = Gurobi.Env())
     # this function requires ["g"] in R and ["ℓ"] in D
     # unpack important data
-    @unpack R, D, N, K, C, x̲, x̄, x0, I, Nr, ȳℓ, Δt, ηc, ηd, Ts, p, ps, pd, c0, T, market = case_data
+    @unpack R, D, N, K, C, x̲, x̄, x0, I, Nr, ȳℓ, Δt, ηc, ηd, Ts, p, ps, pd, c0, T, market, Cs = case_data
     # set Gurobi environment
     model = Model(() -> Gurobi.Optimizer(env))
     # Decision variables
@@ -14,15 +14,14 @@ function build_model(case_data::CaseData = CaseData(), env::Gurobi.Env = Gurobi.
     @variable(model, xmax[n in N] >= 0)
     @variable(model, ys[r in R, n in N, k in K, c in C] >= 0)
     @variable(model, yd[r in D, n in N, k in K, c in C] >= 0)
-    @variable(model, y0[n in N] >= 0)
     @variable(model, z[r in R, n in N], Bin)
     # constraints
     # - limited investment choice
     @constraint(model, [r in R, n in N], x[r,n] <= x̄[r] * z[r,n])
     @constraint(model, [r in R, n in N], x[r,n] >= x̲[r] * z[r,n])
-    # - total capacity at the beginning of planning period N
+    # - total capacity at the beginning of planning period N, backup and storage capacity is always in base case
     if !isempty(setdiff(R, ["g"]))
-        @constraint(model, [r in setdiff(R, ["g"]), n in N, c in C], xtot[r,n,c] == sum(x0[r,n,i] for i in I[r]) + sum(x[r,i] for i in n̲(n, Nr[r], N = N) : n))
+        @constraint(model, [r in setdiff(R, ["g"]), n in N, c in [0]], xtot[r,n,c] == sum(x0[r,n,i] for i in I[r]) + sum(x[r,i] for i in n̲(n, Nr[r], N = N) : n))
     end
     @constraint(model, [r in ["g"], n in N, c in C], xtot[r,n,c] == sum(x0[r, n, i] for i in I[r]) + sum(x[r,i] for i in n̲(n, Nr[r], N = N): n) - c*xmax[n])
     @constraint(model, [r in ["g"], n in N, i in n̲(n, Nr[r], N = N):n], xmax[n] >= x[r, i])
@@ -30,28 +29,30 @@ function build_model(case_data::CaseData = CaseData(), env::Gurobi.Env = Gurobi.
     # - balance
     @constraint(model, [n in N, k in K, c in C], sum(ys[r,n,k,c] for r in R) == sum(yd[r,n,k,c] for r in D))
     # - capacity limit
-    @constraint(model, [r in R, n in N, k in K, c in C], ys[r,n,k,c] <= xtot[r,n,c])
+    # -- supply
+    @constraint(model, [r in ["g"], n in N, k in K, c in C], ys[r,n,k,c] <= xtot[r,n,c])
+    if !isempty(setdiff(R, ["g"]))
+        @constraint(model, [r in setdiff(R, ["g"]), n in N, k in K, c in C], ys[r,n,k,c] <= xtot[r,n,0])
+    end
+    # -- demand
     @constraint(model, [r in ["ℓ"], n in N, k in K, c in C], yd[r,n,k,c] <= ȳℓ[n,k])
     if !isempty(setdiff(D, ["ℓ"]))
-        @constraint(model, [r in setdiff(D, ["ℓ"]), n in N, k in K, c in C], yd[r,n,k,c] <= xtot[r,n,c])
+        @constraint(model, [r in setdiff(D, ["ℓ"]), n in N, k in K, c in C], yd[r,n,k,c] <= xtot[r,n,0])
     end
     if "s" in R
-        # - state-of-charge bounds
-        cumsum_expr = []
-        acc = AffExpr()
-        for k in K
-            add_to_expression!(acc, ηc * yd["s", k])
-            add_to_expression!(acc, -ys["s", k] / ηd)
-            push!(cumsum_expr, Δt * acc)
-        end
-        for (i, k) in enumerate(K)
-            @constraint(model, y0 * Ts * xtot["s"] + cumsum_expr[i] <= Ts * xtot["s"])
-            @constraint(model, y0 * Ts * xtot["s"] + cumsum_expr[i] >= 0)
-        end
+        # - initial state of charge
+        @variable(model, y0[n in N] >= 0)
+        @constraint(model, [n in N], y0[n] <= Ts * xtot["s", n, 0])
+        # - evolving state of charge
+        @variable(model, ysoc[n in N, k in K, c in C] >= 0)
+        @constraint(model, [n in N, c in C], ysoc[n, end, c] .<= Ts * xtot["s", n, 0])
+        # - state-of-charge evolution
+        @constraint(model, [n in N, c in C], ysoc[n,1,c] == y0[n] + Δt * (ηc * yd["s", n, 1, c] - ys["s", n, 1, c] / ηd)) 
+        @constraint(model, [n in N, k in K[2:end], c in C], ysoc[n,k,c] == ysoc[n,k-1,c] + Δt * (ηc * yd["s", n, k, c] - ys["s", n, k, c] / ηd))
         # - state of charge balance
-        @constraint(model, [r in ["s"]], cumsum_expr[end] >= 0)
+        @constraint(model, [n in N, c in C], ysoc[n, end, c] >= y0[n])
         # - discharge limit
-        @constraint(model, [n in N, c in C], sum(ys["s",n,k,c] for k in K)/ηd <= Cs * Ts * xtot["s"])
+        @constraint(model, [n in N, c in C], sum(ys["s",n,k,c] for k in K)/ηd <= Cs * Ts * xtot["s", n, 0])
     end
     # - market participation
     if market == no_exports
@@ -67,8 +68,8 @@ function build_model(case_data::CaseData = CaseData(), env::Gurobi.Env = Gurobi.
         @variable(model, zM[n in N, k in K, c in C], Bin)
         @constraint(model, [n in N, k in K, c in C], (1 - zM[n,k,c]) * M̲1 <= yd["ℓ",n,k,c] - xtot["g",n,c])
         @constraint(model, [n in N, k in K, c in C], zM[n,k,c] * M̅1[n,k,c] >= yd["ℓ",n,k,c] - xtot["g",n,c])
-        @constraint(model, [n in N, k in K, c in C], sum(ys[r,n,k,c] for r in ["b", "s"]) <= yd["ℓ",n,k,c] - xtot["g", n, c] - (1 - zM[n,k,c])*M̲2)
-        @constraint(model, [n in N, k in K, c in C], sum(ys[r,n,k,c] for r in ["b", "s"]) <= zM[n,k,c] * M̅2)
+        @constraint(model, [n in N, k in K, c in C], sum(ys[r,n,k,c] for r in setdiff(R, ["b", "s"]); init = 0) <= yd["ℓ",n,k,c] - xtot["g", n, c] - (1 - zM[n,k,c])*M̲2)
+        @constraint(model, [n in N, k in K, c in C], sum(ys[r,n,k,c] for r in setdiff(R, ["b", "s"]); init = 0) <= zM[n,k,c] * M̅2)
     end
     # objective
     @objective(model, Min, sum( sum( p[r,n] * x[r,n] + c0[r,n] * z[r,n] for r in R) 
@@ -79,7 +80,7 @@ function build_model(case_data::CaseData = CaseData(), env::Gurobi.Env = Gurobi.
     return model
 end
 
-function build_model(case_data::CaseDataOps = CaseDataOps(), env::Gurobi.Env = Gurobi.Env())
+function build_model(case_data::CaseDataOps; env::Gurobi.Env = Gurobi.Env())
     # this function requires ["g"] in R and ["ℓ"] in D
     # unpack important data
     @unpack R, D, K, ȳℓ, Δt, ηc, ηd, Ts, ps, pd, market, xtot, y0, load_shedding, Cs = case_data
@@ -103,39 +104,33 @@ function build_model(case_data::CaseDataOps = CaseDataOps(), env::Gurobi.Env = G
         @constraint(model, [r in setdiff(D, ["ℓ"]), k in K], yd[r,k] <= xtot[r])
     end
     if "s" in R
+        @variable(model, ysoc[k in K] >= 0) # state of charge
+        # - state-of-charge evolution
+        @constraint(model, ysoc[1] == y0 * Ts * xtot["s"] + Δt * (ηc * yd["s", 1] - ys["s", 1] / ηd)) 
+        @constraint(model, [k in K[2:end]], ysoc[k] == ysoc[k-1] + Δt * (ηc * yd["s", k] - ys["s", k] / ηd))
         # - state-of-charge bounds
-        cumsum_expr = []
-        acc = AffExpr()
-        for k in K
-            add_to_expression!(acc, ηc * yd["s", k])
-            add_to_expression!(acc, -ys["s", k] / ηd)
-            push!(cumsum_expr, Δt * acc)
-        end
-        for (i, k) in enumerate(K)
-            @constraint(model, y0 * Ts * xtot["s"] + cumsum_expr[i] <= Ts * xtot["s"])
-            @constraint(model, y0 * Ts * xtot["s"] + cumsum_expr[i] >= 0)
-        end
+        @constraint(model, ysoc .<= Ts * xtot["s"])
         # - state of charge balance
-        @constraint(model, [r in ["s"]], cumsum_expr[end] >= 0)
+        @constraint(model, ysoc[end] >= y0 * Ts * xtot["s"])
         # - discharge limit
         @constraint(model, sum(ys["s",k] for k in K)/ηd <= Cs * Ts * xtot["s"])
     end
     # - market participation
-    if market == no_exports
-        @constraint(model, [r in ["g"], k in K], yd[r,k] == 0)
+    if (market == no_exports) & ("g" in R)
+        @constraint(model, [r in ["g"], k in K], yd[r,k] == 0.)
     elseif market == peak_shaving
         if load_shedding
-            # construct M
+            # construct M (safe to assume that "g" is in R, otherwise there is no use for peak shaving)
             M̲1 = -xtot["g"]
             M̲2 = -sum(xtot)
             M̅1 = ȳℓ .- xtot["g"]
-            M̅2 = sum(xtot[r] for r in ["b", "s"])
+            M̅2 = sum(xtot[r] for r in setdiff(R, ["g"]); init = 0)
             # add additional variables and constraints
             @variable(model, zM[k in K], Bin)
             @constraint(model, [k in K], (1 - zM[k]) * M̲1 <= yd["ℓ",k] - xtot["g"])
             @constraint(model, [k in K], zM[k] * M̅1[k] >= yd["ℓ",k] - xtot["g"])
-            @constraint(model, [k in K], sum(ys[r,k] for r in ["b", "s"]) <= yd["ℓ",k] - xtot["g"] - (1 - zM[k])*M̲2)
-            @constraint(model, [k in K], sum(ys[r,k] for r in ["b", "s"]) <= zM[k] * M̅2)
+            @constraint(model, [k in K], sum(ys[r,k] for r in setdiff(R, ["g"]); init = 0) <= yd["ℓ",k] - xtot["g"] - (1 - zM[k])*M̲2)
+            @constraint(model, [k in K], sum(ys[r,k] for r in setdiff(R, ["g"]); init = 0) <= zM[k] * M̅2)
         else
             @constraint(model, [k in K], sum( ys[r,k] for r in setdiff(R, ["ℓ"])) <= max( fix_value(yd["ℓ", k]) - xtot["g"], 0))
         end
@@ -148,18 +143,18 @@ function build_model(case_data::CaseDataOps = CaseDataOps(), env::Gurobi.Env = G
     return model
 end
 
-function run_model(case_data::Union{CaseData, CaseDataOps} = CaseData(), env::Gurobi.Env = Gurobi.Env())
-    model = build_model(case_data, env)
+function run_model(case_data::Union{CaseDataPlan, CaseDataOps}; env::Gurobi.Env = Gurobi.Env())
+    @time model = build_model(case_data, env = env)
     if case_data.grb_silent
         set_silent(model)
         set_optimizer_attribute(model, "OutputFlag", 0)
     end
     # set_optimizer(model, Gurobi.Optimizer)
-    optimize!(model)
+    @time optimize!(model)
     return model, case_data
 end
 
-function compute_x̄tot_s(case_data::CaseData = CaseData())
+function compute_x̄tot_s(case_data::CaseDataPlan)
     @unpack ȳℓ, Δt, ηc, ηd, Ts = case_data
     # find planning period with maximum demand
     n = argmax(Array(ȳℓ))[1]
@@ -172,7 +167,7 @@ function compute_x̄tot_s(case_data::CaseData = CaseData())
     return max(1, duration/Ts)*power
 end
 
-function compute_xtot(x::Dict{Int64, Float64}; case_data::CaseData = CaseData(), r::String = "g")
+function compute_xtot(x::Dict{Int64, Float64}, case_data::CaseDataPlan; r::String = "g")
     @unpack N, C, x0, I, Nr = case_data
     if r in ["b", "s"]
         return Dict((n,c) => sum( x0[r, n, i] for i in I[r]; init = 0) + sum( x[i] for i in n̲(n, Nr[r], N = N) : n ) for n in N, c in C)
@@ -181,8 +176,8 @@ function compute_xtot(x::Dict{Int64, Float64}; case_data::CaseData = CaseData(),
     end
 end
 
-function compute_M̄1(case_data::CaseData = CaseData())
+function compute_M̄1(case_data::CaseDataPlan)
     @unpack ȳℓ, N, K, C = case_data
-    xtot = compute_xtot(Dict(n => 0. for n in N), case_data = case_data, r = "g")
+    xtot = compute_xtot(Dict(n => 0. for n in N), case_data, r = "g")
     return Dict((n,k,c) => ȳℓ[n, k] - xtot[n,c] for n in N, k in K, c in C)
 end

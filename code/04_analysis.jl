@@ -2,7 +2,7 @@ using JuMP, OffsetArrays
 
 include("01_data.jl")
 
-function analysis(model::Model; case_data::CaseData = CaseData(), print_result::Bool = true)
+function analysis_plan(model::Model, case_data::CaseDataPlan; print_result::Bool = true)
     @unpack K, N, C, ȳℓ, p, c0, T, ps, pd, r = case_data;
     # retrieve necessary information
     ys = value.(model[:ys])
