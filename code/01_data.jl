@@ -54,7 +54,7 @@ end
     # Storage duration
     Ts::Float64
     # Max number of storage cycles per planning period
-    Cs::Float64
+    Cs::Union{Float64, Nothing}
     # Market participation
     market::Market
     # Discount rate
@@ -71,6 +71,7 @@ end
     D::Vector{String}
     # - Operating periods
     K::UnitRange{Int64}
+    T::Union{Nothing, Vector{Date}}
     # Operating costs
     ps::Containers.DenseAxisArray{}
     pd::Containers.DenseAxisArray{}
@@ -84,7 +85,7 @@ end
     # Storage duration
     Ts::Float64
     # Max number of storage cycles per planning period
-    Cs::Float64
+    Cs::Union{Float64, Nothing}
     # Market participation
     market::Market
     # Investment decisions
@@ -97,7 +98,7 @@ end
     grb_silent::Bool
 end
 
-function build_data_plan(; date::String = "peak", market::Market = full, grb_silent::Bool = true, Cs = 150.)
+function build_data_plan(; date::String = "peak", market::Market = full, grb_silent::Bool = true, Cs::Union{Float64, Nothing} = 150.)
     # - planning horizon
     N = 2025:2050
     # - contingency set
@@ -225,7 +226,7 @@ function build_data_ops(; date::String = "peak",
     y0::Union{Nothing, Float64} = nothing,
     load_shedding::Bool = true,
     grb_silent::Bool = true,
-    Cs::Float64 = 150.
+    Cs::Union{Float64, Nothing} = 150.
     )
     # read general parameters
     file_path = "data/nantucket.json"
@@ -260,15 +261,18 @@ function build_data_ops(; date::String = "peak",
         )
         ȳℓ = Containers.@container([k in K], peak_day[!, :Load][k])
         pg = peak_day[!, :Price]
+        T = nothing
     elseif date == "year"
         K = 1:nrow(yearly_data)
         ȳℓ = Containers.@container([k in K], yearly_data[!, "MW Factor"][k])
         pg = yearly_data[!, "Price"]
+        T = yearly_data[!, "Day"]
     else
         date_data = filter(row -> row.Day == Date(date, dateformat"yyyy-mm-dd"), yearly_data)
         K = 1:nrow(date_data)
         ȳℓ = Containers.@container([k in K], date_data[!, "MW Factor"][k])
         pg = date_data[!, "Price"]
+        T = nothing
     end
     # overall operating costs
     ps = Containers.@container([r in R, k in K], 
@@ -290,7 +294,7 @@ function build_data_ops(; date::String = "peak",
         end
     )
     return CaseDataOps(
-        R = R, D = D, K = K, ps = ps, pd = pd, ȳℓ = ȳℓ,
+        R = R, D = D, K = K, T = T, ps = ps, pd = pd, ȳℓ = ȳℓ,
         Δt = Δt, ηc = ηc, ηd = ηd, Ts = Ts, Cs = Cs,
         market = market, xtot = xtot, y0 = y0,
         load_shedding = load_shedding, grb_silent = grb_silent

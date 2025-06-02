@@ -1,4 +1,4 @@
-using JuMP, OffsetArrays
+using JuMP, DataFrames, OffsetArrays
 
 include("01_data.jl")
 
@@ -104,7 +104,7 @@ function analysis_ops(model_data::Tuple{Model, CaseDataOps}; print_result::Bool 
     # unpack model data
     model = model_data[1]
     case_data = model_data[2]
-    @unpack R, K, D, market, load_shedding, ps, pd, Δt, xtot, Ts, ȳℓ = case_data;
+    @unpack R, K, D, market, load_shedding, ps, pd, Δt, xtot, Ts, ȳℓ, Cs, ηd, T = case_data;
     # retrieve necessary information
     ys = value.(model[:ys])
     yd = value.(model[:yd])
@@ -116,6 +116,11 @@ function analysis_ops(model_data::Tuple{Model, CaseDataOps}; print_result::Bool 
         end
     else
         y0 = 0.
+    end
+
+    # build dataframe with time resolution
+    if !isnothing(T)
+        df = DataFrame(T=T, yss = ys["s",:].data, ysd = yd["s", :].data, yℓ = ȳℓ.data)
     end
 
     # parse JuMP data
@@ -155,6 +160,11 @@ function analysis_ops(model_data::Tuple{Model, CaseDataOps}; print_result::Bool 
 
     # printing
     if print_result
+        println(!isnothing(Cs) ? Cs * Ts * xtot["s"] * ηd : "")
+        println(mean(case_data.pd["ℓ", :]))
+        println(length(case_data.K))
+        println(!isnothing(T) ? length(unique(df[df.yℓ .> xtot["g"], :T])) : "")
+        println()
         for r in ["b", "g", "s"] 
             println(r in R ? xtot[r] : 0.)
         end
@@ -168,10 +178,17 @@ function analysis_ops(model_data::Tuple{Model, CaseDataOps}; print_result::Bool 
         println(Int(isnothing(y0)))
         println()
         println(objective_value(model))
+        println(Δt * sum( sum(ps[r,k] * ys[r,k] for r in R) 
+                        - sum(pd[r,k] * yd[r,k] for r in setdiff(D, ["ℓ"])) 
+                        +  pd["ℓ",k] * (ȳℓ[k] - yd["ℓ",k])
+                        for k in K)
+              )
         println(solve_time(model))
         println(Bool(MOI.get(model, Gurobi.ModelAttribute("IsMIP"))) ? relative_gap(model) : 0.)
         println(sum((ys["s", :] .* yd["s", :]) .>= 1e-8)/length(yd["s", :]))
         println(y0)
+        println( !isnothing(T) ? length(unique(df[ (df.yss .!= 0.0), :T ])) : "")
+        println( !isnothing(T) ? length(unique(df[ (df.ysd .!= 0.0), :T ])) : "")
         println()
         # max supply (MWh)
         for r in ["b", "g", "s"] 

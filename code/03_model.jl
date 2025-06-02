@@ -52,7 +52,9 @@ function build_model(case_data::CaseDataPlan; env::Gurobi.Env = Gurobi.Env())
         # - state of charge balance
         @constraint(model, [n in N, c in C], ysoc[n, end, c] >= y0[n])
         # - discharge limit
-        @constraint(model, [n in N, c in C], sum(ys["s",n,k,c] for k in K)/ηd <= Cs * Ts * xtot["s", n, 0])
+        if !isnothing(Cs)
+            @constraint(model, [n in N, c in C], Δt * sum(ys["s",n,k,c] for k in K)/ηd <= Cs * Ts * xtot["s", n, 0])
+        end
     end
     # - market participation
     if market == no_exports
@@ -113,7 +115,9 @@ function build_model(case_data::CaseDataOps; env::Gurobi.Env = Gurobi.Env())
         # - state of charge balance
         @constraint(model, ysoc[end] >= y0 * Ts * xtot["s"])
         # - discharge limit
-        @constraint(model, sum(ys["s",k] for k in K)/ηd <= Cs * Ts * xtot["s"])
+        if !isnothing(Cs)
+            @constraint(model, Δt * sum(ys["s",k] for k in K)/ηd <= Cs * Ts * xtot["s"])
+        end
     end
     # - market participation
     if (market == no_exports) & ("g" in R)
