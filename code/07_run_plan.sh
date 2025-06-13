@@ -1,13 +1,7 @@
 #!/bin/bash
 
 # Job Flags
-#SBATCH -N 1 -n 48 -p mit_quicktest --mem=96G
-
-# Get the directory where the script lives
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-# Set root project directory (one level above script)
-ROOT_DIR="$(dirname "$SCRIPT_DIR")"
+#SBATCH -N 1 -n 48 -p mit_normal --mem=96G
 
 # Set defaults
 DATES=peak
@@ -26,4 +20,4 @@ while [[ "$#" -gt 0 ]]; do
 done
 
 # Run your application
-julia +1.11.2 --project="$ROOT_DIR" "$SCRIPT_DIR/07_run_plan.jl" -d $DATES -m $MARKET -c $CYCLES
+julia +1.11.2 --project=. "code/07_run_plan.jl" -d $DATES -m $MARKET -c $CYCLES
