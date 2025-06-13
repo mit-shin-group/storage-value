@@ -7,6 +7,22 @@ end
 # Market participation types
 @enum Market full no_exports limited_backup peak_shaving 
 
+# Function to parse the market type from a string
+function parse_market(x::AbstractString)
+    lower_x = lowercase(x)
+    if lower_x == "full"
+        return full
+    elseif lower_x == "no_exports"
+        return no_exports
+    elseif lower_x == "limited_backup"
+        return limited_backup
+    elseif lower_x == "peak_shaving"
+        return peak_shaving
+    else
+        throw(ArgumentError("Invalid market type: $x"))
+    end
+end
+
 function read_data(file_path)
     open(file_path) do io
         data = JSON3.read(io)
@@ -61,6 +77,7 @@ end
     r::Float64
     # Gurobi parameters
     grb_silent::Bool
+    grb_mipgap::Float64
 end
 
 @with_kw struct CaseDataOps
@@ -96,9 +113,10 @@ end
     load_shedding::Bool
     # Gurobi parameters
     grb_silent::Bool
+    grb_mipgap::Float64
 end
 
-function build_data_plan(; date::String = "peak", market::Market = full, grb_silent::Bool = true, Cs::Union{Float64, Nothing} = 150.)
+function build_data_plan(; date::String = "peak", market::Market = full, grb_silent::Bool = true, grb_mipgap::Float64 = 0.001, Cs::Union{Float64, Nothing} = 150.)
     # - planning horizon
     N = 2025:2050
     # - contingency set
@@ -216,7 +234,7 @@ function build_data_plan(; date::String = "peak", market::Market = full, grb_sil
         R = R, I = I, D = D, N = N, K = K, C = C, Nr = Nr, T = T,
         p = p, c0 = c0, ps = ps, pd = pd, x0 = x0, x̲ = x̲, x̄ = x̄,
         ȳℓ = ȳℓ, Δt = Δt, ηc = ηc, ηd = ηd, Ts = Ts, Cs = Cs,
-        market = market, r = discount_rate, grb_silent = grb_silent
+        market = market, r = discount_rate, grb_silent = grb_silent, grb_mipgap = grb_mipgap
     )
 end
 
@@ -226,6 +244,7 @@ function build_data_ops(; date::String = "peak",
     y0::Union{Nothing, Float64} = nothing,
     load_shedding::Bool = true,
     grb_silent::Bool = true,
+    grb_mipgap::Float64 = 0.001,
     Cs::Union{Float64, Nothing} = 150.
     )
     # read general parameters
@@ -297,6 +316,6 @@ function build_data_ops(; date::String = "peak",
         R = R, D = D, K = K, T = T, ps = ps, pd = pd, ȳℓ = ȳℓ,
         Δt = Δt, ηc = ηc, ηd = ηd, Ts = Ts, Cs = Cs,
         market = market, xtot = xtot, y0 = y0,
-        load_shedding = load_shedding, grb_silent = grb_silent
+        load_shedding = load_shedding, grb_silent = grb_silent, grb_mipgap = grb_mipgap
     )
 end

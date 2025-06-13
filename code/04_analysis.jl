@@ -1,14 +1,52 @@
-using JuMP, DataFrames, OffsetArrays
+using JuMP, DataFrames, OffsetArrays, JLD2
 
 include("01_data.jl")
 
-function analysis_plan(model::Model, case_data::CaseDataPlan; print_result::Bool = true)
-    @unpack K, N, C, ȳℓ, p, c0, T, ps, pd, r = case_data;
-    # retrieve necessary information
-    ys = value.(model[:ys])
-    yd = value.(model[:yd])
-    x = value.(model[:x])
-    z = value.(model[:z])
+function save_planning_results(model_data::Tuple{Model, CaseDataPlan})
+    # unpack model data
+    model = model_data[1]
+    case_data = model_data[2]
+    # create dict with model vars
+    model_results = Dict(
+        "x" => value.(model[:x]),
+        "xmax" => value.(model[:xmax]),
+        "xtot" => value.(model[:xtot]),
+        "ys" => value.(model[:ys]),
+        "yd" => value.(model[:yd]),
+        "z" => value.(model[:z]),
+        "y0" => "s" in case_data.R ? value.(model[:y0]) : 0.,
+        "ysoc" => "s" in case_data.R ? value.(model[:ysoc]) : 0.,
+        "objective_value" => objective_value(model),
+        "solve_time" => solve_time(model),
+        "relative_gap" => Bool(MOI.get(model, Gurobi.ModelAttribute("IsMIP"))) ? relative_gap(model) : 0.,
+    )
+    # save model data and case_data to jld
+    filename = "results/planning/" * string(length(case_data.K)) * string(case_data.market) * string(Int(case_data.Cs)) * ".jld"
+    @save filename model_results case_data
+end
+
+function analysis_plan(model_data::Tuple{Model, CaseDataPlan}; print_result::Bool = true, save_result::Union{Nothing, String} = nothing)
+    model = model_data[1]
+    case_data = model_data[2]
+    @unpack R, D, K, N, C, Cs, ȳℓ, p, ps, pd, Δt, c0, T, Ts, r, market, ηc, ηd = case_data;   
+    # build result dict for saving
+    result_dict = Dict(
+        "ys" => Dict(r => ys),
+        "yd" => yd,
+        "x" => Dict(r => x[r, :].data for r in R),
+        "z" => z,
+        "y0" => y0,
+        "ysoc" => ysoc,
+        "objective_value" => objective_value(model),
+        "solve_time" => solve_time(model),
+        "relative_gap" => Bool(MOI.get(model, Gurobi.ModelAttribute("IsMIP"))) ? relative_gap(model) : 0.,
+    )
+
+    open(save_result * "_result.json", "w") do io
+            JSON3.write(io, result_dict)
+    end
+    # save_result = "results/planning/peak_full"
+
     # write result dict
     result_dict = Dict(
         # parameters
