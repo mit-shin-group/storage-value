@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Job Flags
-#SBATCH -N 1 -n 48 -p mit_normal --mem=96G
+#SBATCH -N 1 -n 96 -p mit_normal --mem=370G
 
 # Set defaults
 DATES=peak

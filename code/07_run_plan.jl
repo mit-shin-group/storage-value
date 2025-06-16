@@ -30,7 +30,7 @@ function main()
     market = parse_market(market_str)
     Cs = args["cycles"]
     # run julia script
-    save_planning_results(run_model(build_data_plan(date = date, market = market, Cs = Cs, grb_silent = false)))
+    save_planning_results(run_model(build_data_plan(date = date, market = market, Cs = Cs, grb_silent = false, grb_mipgap = 0.01)))
 end
 
 main()

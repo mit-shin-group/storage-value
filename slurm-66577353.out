@@ -1,8 +1,0 @@
-ERROR: SystemError: opening file "/var/spool/slurmd/job66577353/07_run_plan.jl": No such file or directory
-Stacktrace:
- [1] include(mod::Module, _path::String)
-   @ Base ./Base.jl:557
- [2] exec_options(opts::Base.JLOptions)
-   @ Base ./client.jl:323
- [3] _start()
-   @ Base ./client.jl:531
