@@ -25,6 +25,151 @@ function save_planning_results(model_data::Tuple{Model, CaseDataPlan})
     @save filename model_results case_data
 end
 
+function print_planning_results(result_file::String)
+    planning_results = JLD2.load(result_file)
+    case_data = planning_results["case_data"]
+    model_results = planning_results["model_results"]
+    # --- Parameters
+    # max. battery cycles per year
+    println(case_data.Cs)
+    # value of lost load in 2025
+    println(mean(case_data.pd["ℓ", 2025, :]))
+    # time horizon
+    println(length(case_data.K))
+    # contingency probability
+    println(100*mean(case_data.T[:,1]))
+    # base case probability
+    println(100*mean(case_data.T[:,0]))
+    # available resources
+    println(case_data.R)
+    # market participation
+    println(case_data.market)
+    # discount rate
+    println(case_data.r)
+    # --- Model results
+    println()
+    # objective value
+    println(-model_results["objective_value"])
+    # solve time
+    println(model_results["solve_time"])
+    # maximum optimality gap
+    println(100 * model_results["relative_gap"])
+    # complementarity violation
+    println(sum((model_results["ys"]["s", :, :, :] .* model_results["yd"]["s", :, : , :]) .>= 1e-8)/length(model_results["yd"]["s", :, : , :]))
+    # storage supply cycles
+    for c in case_data.C
+        # avg.
+        println(mean(case_data.Δt * sum(model_results["ys"]["s",:,k,c] for k in case_data.K)./(case_data.ηd * case_data.Ts * model_results["xtot"]["s", :, 0])))
+        # max.
+        println(maximum(case_data.Δt * sum(model_results["ys"]["s",:,k,c] for k in case_data.K)./(case_data.ηd * case_data.Ts * model_results["xtot"]["s", :, 0])))   
+    end
+    # total operating cost -- base case and contingency
+    for c in case_data.C
+        println(case_data.Δt * sum( sum(case_data.ps[r,n,k] * model_results["ys"][r,n,k,c] for r in case_data.R) 
+            - sum(case_data.pd[r,n,k] * model_results["yd"][r,n,k,c] for r in setdiff(case_data.D, ["ℓ"])) 
+            for n in case_data.N, k in case_data.K))
+    end
+    # total cost of lost load -- base case and contingency
+    for c in case_data.C
+        println(case_data.Δt * sum(case_data.pd["ℓ",n,k] * (case_data.ȳℓ[n,k] - model_results["yd"]["ℓ",n,k,c]) for n in case_data.N, k in case_data.K))
+    end
+    # total capital cost
+    println(sum(case_data.p[r,n] * model_results["x"][r,n] + case_data.c0[r,n] * model_results["z"][r,n] for n in case_data.N for r in case_data.R))
+    # terminal capacity
+    println()
+    for r in ["b", "g", "s"]
+        if r in case_data.R
+            println(model_results["xtot"][r, end, 0])
+        else
+            println(0.)
+        end
+    end
+    # total investment (MW)
+    println()
+    for r in ["b", "g", "s"]
+        if r in case_data.R
+            println(sum(model_results["x"][r, n] for n in case_data.N))
+        else
+            println(0.)
+        end
+    end
+    # total investment (M$)
+    println()
+    for r in ["b", "g", "s"]
+        if r in case_data.R
+            println(sum(case_data.p[r, n] * model_results["x"][r, n] + case_data.c0[r, n] * model_results["z"][r, n] for n in case_data.N))
+        else
+            println(0.)
+        end
+    end
+    # -- operations
+    for c in case_data.C
+        println()
+        # max supply(MW)
+        println()
+        for r in ["b", "g", "s"]
+            if r in case_data.R
+                println(r == "g" ? max(maximum(model_results["ys"]["g", :, :, c] .- model_results["yd"]["g", :, :, c]), 0) : maximum(model_results["ys"][r, :, :, c])
+                )
+            else
+                println(0.)
+            end
+        end
+        println(maximum(case_data.ȳℓ .- model_results["yd"]["ℓ", :, :, c]))
+        # max demand (MW)
+        println()
+        for r in ["g", "ℓ", "s"]
+            if r in case_data.D
+                println(r == "g" ? max(maximum(model_results["yd"]["g", :, :, c] .- model_results["ys"]["g", :, :, c]), 0) : maximum(model_results["yd"][r, :, :, c])
+                )
+            else
+                println(0.)
+            end
+        end
+        # total supply (MWh)
+        println()
+        for r in ["b", "g", "s"]
+            if r in case_data.R
+                println(r == "g" ? case_data.Δt * sum(max.(model_results["ys"]["g", :, :, c] .- model_results["yd"]["g", :, :, c], 0)) : 
+                    case_data.Δt * sum(model_results["ys"][r, :, :, c]))
+            else
+                println(0.)
+            end
+        end
+        println(case_data.Δt * sum(case_data.ȳℓ .- model_results["yd"]["ℓ", :, :, c]))
+        # total demand (MWh)
+        println()
+        for r in ["g", "ℓ", "s"]
+            if r in case_data.D
+                println(r == "g" ? case_data.Δt * sum(max.(model_results["yd"]["g", :, :, c] .- model_results["ys"]["g", :, :, c], 0)) : 
+                    case_data.Δt * sum(model_results["yd"][r, :, :, c]))
+            else
+                println(0.)
+            end
+        end
+        # supply cost
+        println()
+        for r in ["b", "g", "s"]
+            if r in case_data.R
+                println(r == "g" ? case_data.Δt * sum(case_data.ps["g",:,:] .* max.(model_results["ys"]["g", :, :, c] .- model_results["yd"]["g", :, :, c], 0)) : 
+                    case_data.Δt * sum(case_data.ps[r,:,:] .* model_results["ys"][r, :, :, c]))
+            else
+                println(0.)
+            end
+        end
+        # demand revenue
+        println()   
+        for r in ["g", "ℓ", "s"]
+            if r in case_data.D
+                println(r == "g" ? case_data.Δt * sum(case_data.pd["g",:,:] .* max.(model_results["yd"]["g", :, :, c] .- model_results["ys"]["g", :, :, c], 0)) : 
+                    case_data.Δt * sum(case_data.pd[r,:,:] .* model_results["yd"][r, :, :, c]))
+            else
+                println(0.)
+            end
+        end
+    end
+end
+
 function analysis_plan(model_data::Tuple{Model, CaseDataPlan}; print_result::Bool = true, save_result::Union{Nothing, String} = nothing)
     model = model_data[1]
     case_data = model_data[2]
