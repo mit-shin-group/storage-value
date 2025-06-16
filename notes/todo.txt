@@ -1,0 +1,23 @@
+- check that contingency and base case operation sums up to probability (T parameters) --> have T sum to 1 over contingencies
+- add option to disallow load shedding in planning problem?
+- add fixed daily initial soc based on peak load days into planning problem
+- decouple days in planning problem
+- change T to a vector of dates in the planning problem
+- adjust MIPGap to 0.1%
+
+
+Results:
+- why is the maximum supply from the grid in base case operations so low (38MW), when 74MW would be available?
+- why are we exporting to the grid in a peak shaving scenario? -- we are not exporting much.
+- why is storage supply greater than storage demand? --> because I was checking max values
+- why is grid utilized at full capacity in full market participation mode but not in peak-shaving mode?
+- check complementarity of grid im- and exports
+
+Observations:
+- the higher the cycle limit, the longer the solution time
+- underutilization of he grid
+
+Next step (goal: arrive at a sensible solution):
+- adjust probabilities
+- adjust MIPGap
+- experiment with Cs = 0
