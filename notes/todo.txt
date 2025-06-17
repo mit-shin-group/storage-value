@@ -15,9 +15,12 @@ Results:
 
 Observations:
 - the higher the cycle limit, the longer the solution time
-- underutilization of he grid
+- underutilization of the grid
 
 Next step (goal: arrive at a sensible solution):
-- adjust probabilities
-- adjust MIPGap
-- experiment with Cs = 0
+(done) adjust probabilities (0.8 -- 0.2) 
+(done) adjust MIPGap (0.01)
+(done) check operational cost of the grid vs backup generation. Why is max grid utilization low in peak-shaving and not in full participation? --> check market participation constraint; at least in the first year all power should be imported from the grid --> summed over g instead of b and s by accident
+- experiment with Cs = 0, try to get a solution that invests in grid expansion
+- check if electricity is exported, when it could be used to cover demand
+- experiment with full market solution to get investment into power lines
