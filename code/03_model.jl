@@ -70,8 +70,8 @@ function build_model(case_data::CaseDataPlan; env::Gurobi.Env = Gurobi.Env())
         @variable(model, zM[n in N, k in K, c in C], Bin)
         @constraint(model, [n in N, k in K, c in C], (1 - zM[n,k,c]) * M̲1 <= yd["ℓ",n,k,c] - xtot["g",n,c])
         @constraint(model, [n in N, k in K, c in C], zM[n,k,c] * M̅1[n,k,c] >= yd["ℓ",n,k,c] - xtot["g",n,c])
-        @constraint(model, [n in N, k in K, c in C], sum(ys[r,n,k,c] for r in setdiff(R, ["b", "s"]); init = 0) <= yd["ℓ",n,k,c] - xtot["g", n, c] - (1 - zM[n,k,c])*M̲2)
-        @constraint(model, [n in N, k in K, c in C], sum(ys[r,n,k,c] for r in setdiff(R, ["b", "s"]); init = 0) <= zM[n,k,c] * M̅2)
+        @constraint(model, [n in N, k in K, c in C], sum(ys[r,n,k,c] for r in setdiff(R, ["g"]); init = 0) <= yd["ℓ",n,k,c] - xtot["g", n, c] - (1 - zM[n,k,c])*M̲2)
+        @constraint(model, [n in N, k in K, c in C], sum(ys[r,n,k,c] for r in setdiff(R, ["g"]); init = 0) <= zM[n,k,c] * M̅2)
     end
     # objective
     @objective(model, Min, sum( sum( p[r,n] * x[r,n] + c0[r,n] * z[r,n] for r in R) 
