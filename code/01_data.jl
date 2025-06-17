@@ -116,7 +116,7 @@ end
     grb_mipgap::Float64
 end
 
-function build_data_plan(; date::String = "peak", market::Market = full, grb_silent::Bool = true, grb_mipgap::Float64 = 0.001, Cs::Union{Float64, Nothing} = 150.)
+function build_data_plan(; date::String = "peak", market::Market = full, grb_silent::Bool = true, grb_mipgap::Float64 = 0.1, Cs::Union{Float64, Nothing} = 150.)
     # - planning horizon
     N = 2025:2050
     # - contingency set
@@ -204,7 +204,7 @@ function build_data_plan(; date::String = "peak", market::Market = full, grb_sil
         pg = yearly_data[!, "Price"]
         T = Containers.@container([n in N, c in C],
             if c == 0.
-                1
+                0.8
             else
                 0.2
             end
