@@ -78,6 +78,7 @@ end
     # Gurobi parameters
     grb_silent::Bool
     grb_mipgap::Float64
+    grb_timelimit::Union{Nothing, Float64} = nothing
 end
 
 @with_kw struct CaseDataOps
@@ -114,9 +115,10 @@ end
     # Gurobi parameters
     grb_silent::Bool
     grb_mipgap::Float64
+    grb_timelimit::Union{Nothing, Float64} = nothing
 end
 
-function build_data_plan(; date::String = "peak", market::Market = full, grb_silent::Bool = true, grb_mipgap::Float64 = 0.1, Cs::Union{Float64, Nothing} = 150.)
+function build_data_plan(; date::String = "peak", market::Market = full, grb_silent::Bool = true, grb_mipgap::Float64 = 0.001, grb_timelimit::Union{Float64, Nothing} = nothing, Cs::Union{Float64, Nothing} = 150.)
     # - planning horizon
     N = 2025:2050
     # - contingency set
@@ -204,9 +206,9 @@ function build_data_plan(; date::String = "peak", market::Market = full, grb_sil
         pg = yearly_data[!, "Price"]
         T = Containers.@container([n in N, c in C],
             if c == 0.
-                0.8
+                0.5
             else
-                0.2
+                0.5
             end
         )
     end
@@ -234,7 +236,7 @@ function build_data_plan(; date::String = "peak", market::Market = full, grb_sil
         R = R, I = I, D = D, N = N, K = K, C = C, Nr = Nr, T = T,
         p = p, c0 = c0, ps = ps, pd = pd, x0 = x0, x̲ = x̲, x̄ = x̄,
         ȳℓ = ȳℓ, Δt = Δt, ηc = ηc, ηd = ηd, Ts = Ts, Cs = Cs,
-        market = market, r = discount_rate, grb_silent = grb_silent, grb_mipgap = grb_mipgap
+        market = market, r = discount_rate, grb_silent = grb_silent, grb_mipgap = grb_mipgap, grb_timelimit = grb_timelimit
     )
 end
 
@@ -245,6 +247,7 @@ function build_data_ops(; date::String = "peak",
     load_shedding::Bool = true,
     grb_silent::Bool = true,
     grb_mipgap::Float64 = 0.001,
+    grb_timelimit::Union{Float64, Nothing} = nothing,
     Cs::Union{Float64, Nothing} = 150.
     )
     # read general parameters
@@ -316,6 +319,6 @@ function build_data_ops(; date::String = "peak",
         R = R, D = D, K = K, T = T, ps = ps, pd = pd, ȳℓ = ȳℓ,
         Δt = Δt, ηc = ηc, ηd = ηd, Ts = Ts, Cs = Cs,
         market = market, xtot = xtot, y0 = y0,
-        load_shedding = load_shedding, grb_silent = grb_silent, grb_mipgap = grb_mipgap
+        load_shedding = load_shedding, grb_silent = grb_silent, grb_mipgap = grb_mipgap, grb_timelimit = grb_timelimit
     )
 end

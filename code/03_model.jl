@@ -153,6 +153,10 @@ function run_model(case_data::Union{CaseDataPlan, CaseDataOps}; env::Gurobi.Env 
         set_silent(model)
         set_optimizer_attribute(model, "OutputFlag", 0)
     end
+    set_optimizer_attribute(model, "MIPGap", case_data.grb_mipgap)
+    if !isnothing(case_data.grb_timelimit)
+        set_optimizer_attribute(model, "TimeLimit", case_data.grb_timelimit)
+    end
     # set_optimizer(model, Gurobi.Optimizer)
     @time optimize!(model)
     return model, case_data

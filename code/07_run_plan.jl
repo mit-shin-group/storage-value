@@ -18,6 +18,10 @@ function parse_commandline()
             arg_type=Float64
             default=150.
             help="Max. yearly battery cycles"
+        "--timelimit", "-t"
+            arg_type=Float64
+            default=28800.
+            help="Time limit for Gurobi solver in seconds"
     end
     return parse_args(s)
 end
@@ -29,8 +33,9 @@ function main()
     market_str = args["market"]
     market = parse_market(market_str)
     Cs = args["cycles"]
+    timelimit = args["timelimit"]
     # run julia script
-    save_planning_results(run_model(build_data_plan(date = date, market = market, Cs = Cs, grb_silent = false, grb_mipgap = 0.1)))
+    save_planning_results(run_model(build_data_plan(date = date, market = market, Cs = Cs, grb_silent = false, grb_mipgap = 0.001, grb_timelimit = timelimit)))
 end
 
 main()
