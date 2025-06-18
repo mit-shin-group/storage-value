@@ -21,6 +21,35 @@ Next step (goal: arrive at a sensible solution):
 (done) adjust probabilities (0.8 -- 0.2) 
 (done) adjust MIPGap (0.01)
 (done) check operational cost of the grid vs backup generation. Why is max grid utilization low in peak-shaving and not in full participation? --> check market participation constraint; at least in the first year all power should be imported from the grid --> summed over g instead of b and s by accident
-- experiment with Cs = 0, try to get a solution that invests in grid expansion
-- check if electricity is exported, when it could be used to cover demand
-- experiment with full market solution to get investment into power lines
+(done) check if electricity is exported, when it could be used to cover demand --> total electricity exports are about 1/1000th of load, seems negligible, none in updated peak shaving
+- experiment with Cs = 0 and full market, to get get investment into power lines
+
+Hypothesis:
+- backup generation is too cheap (opex and capex)
+--> backup generation: constant at $305/MWh
+--> capex: 7.67 million in 2025, 223k in 2050 per MW; sanity check with price for installed genset
+- power line expansion is too expensive
+--> 52.5 million in 2025, 2.6 million in 2050 per MW; sanity check with price for installed battery
+- grid power is too expensive
+--> price evolution? (check case data -> psg, constant throughout the years, average $40/MWh)
+--> check usage of grid and backup power in base case in 2025, expect (almost) no backup power (check model results) -> 129MWh backup power vs 242,955MWh grid power
+
+Conclusion:
+--> opex is fine
+--. investigate capex further
+
+Hypothesis:
+- glitch in build_data_plan -> no, reads directly from data/nantucket.json
+- glitch in data_to_json (writes nantucket.json)
+--> current json: backup capital cost 52.5 million (2025) -- 2.6 million (2050)
+--> current json: grid capital cost 4.1 million (2025) -- 156k (2050)
+--> current json: storage capital cost 7.7 million (2025) -- 223k (2050)
+
+to do:
+(done) change "line capital cost" to "cable capital cost", battery -> storage, cable/line -> grid
+(done) refine capital cost assumptions
+(done) correct capital cost assignment in build_data_plan
+
+Test: rerun julia --project=. code/07_run_plan.jl 
+-- on my PC running the planning problem takes over 3850s, while a decent solution is found 1000s.
+--> add gurobi time limit for debugging.

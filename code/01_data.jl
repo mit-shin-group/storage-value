@@ -138,42 +138,42 @@ function build_data_plan(; date::String = "peak", market::Market = full, grb_sil
     # - existing capacity
     x0 = Containers.@container([r in R, n in N, i in I[r]], 
         if r == "b"
-            reshape(file_data["existing backup capacity (MW)"], Int(length(file_data["existing backup capacity (MW)"])/26), 26)[i, n̲(n, first(N))]
+            reshape(file_data["backup existing capacity (MW)"], Int(length(file_data["backup existing capacity (MW)"])/26), 26)[i, n̲(n, first(N))]
         elseif r == "g"
-            reshape(file_data["existing line capacity (MW)"], Int(length(file_data["existing line capacity (MW)"])/26), 26)[i, n̲(n, first(N))]
+            reshape(file_data["grid existing capacity (MW)"], Int(length(file_data["grid existing capacity (MW)"])/26), 26)[i, n̲(n, first(N))]
         elseif r == "s"
-            reshape(file_data["existing battery capacity (MW)"], Int(length(file_data["existing battery capacity (MW)"])/26), 26)[i, n̲(n, first(N))]
+            reshape(file_data["storage existing capacity (MW)"], Int(length(file_data["storage existing capacity (MW)"])/26), 26)[i, n̲(n, first(N))]
         end
     )
     # - investment ranges
     x̲ = Dict("b" => file_data["backup min. investment (MW)"],
-            "g" => file_data["cable min. investment (MW)"],
-            "s" => file_data["battery min. investment (MW)"])
+            "g" => file_data["grid min. investment (MW)"],
+            "s" => file_data["storage min. investment (MW)"])
     x̄ = Dict("b" => file_data["backup max. investment (MW)"],
-            "g" => file_data["cable max. investment (MW)"],
-            "s" => file_data["battery max. investment (MW)"])   
+            "g" => file_data["grid max. investment (MW)"],
+            "s" => file_data["storage max. investment (MW)"])   
     # - investment cost
     p = Containers.@container([r in R, n in N], 
         if r == "b"
-            file_data["battery capital cost (\$/MW)"][n̲(n, first(N))]
-        elseif r == "g"
             file_data["backup capital cost (\$/MW)"][n̲(n, first(N))]
+        elseif r == "g"
+            file_data["grid capital cost (\$/MW)"][n̲(n, first(N))]
         else
-            file_data["line capital cost (\$/MW)"][n̲(n, first(N))]
+            file_data["storage capital cost (\$/MW)"][n̲(n, first(N))]
         end
     )
     c0 = Containers.@container([r in R, n in N], 0)
     # - investment lifetime
     Nr = Dict("b" => file_data["backup lifetime (years)"], 
-            "g" => file_data["cable lifetime (years)"], 
-            "s" => file_data["battery lifetime (years)"])
+            "g" => file_data["grid lifetime (years)"], 
+            "s" => file_data["storage lifetime (years)"])
     # - time discretization (hours)
     Δt = file_data["time discretization (h)"]    
     # - charging and discharging efficiencies
-    ηc = file_data["battery charging efficiency (-)"]
-    ηd = file_data["battery discharging efficiency (-)"]
+    ηc = file_data["storage charging efficiency (-)"]
+    ηd = file_data["storage discharging efficiency (-)"]
     # - storage duration
-    Ts = file_data["battery duration (h)"]
+    Ts = file_data["storage duration (h)"]
     # - max number of storage cycles per planning period
     Cs = Cs
     # date-dependent parameters
