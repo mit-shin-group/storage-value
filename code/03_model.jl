@@ -5,7 +5,7 @@ include("02_peak_shaving_potential.jl")
 function build_model(case_data::CaseDataPlan; env::Gurobi.Env = Gurobi.Env())
     # this function requires ["g"] in R and ["ℓ"] in D
     # unpack important data
-    @unpack R, D, N, K, C, x̲, x̄, x0, I, Nr, ȳℓ, Δt, ηc, ηd, Ts, p, ps, pd, c0, T, market, Cs = case_data
+    @unpack R, D, N, K, C, x̲, x̄, x0, I, Nr, ȳℓ, Δt, ηc, ηd, Ts, p, ps, pd, c0, T, market, Cs, load_shedding = case_data
     # set Gurobi environment
     model = Model(() -> Gurobi.Optimizer(env))
     # Decision variables
@@ -35,8 +35,17 @@ function build_model(case_data::CaseDataPlan; env::Gurobi.Env = Gurobi.Env())
         @constraint(model, [r in setdiff(R, ["g"]), n in N, k in K, c in C], ys[r,n,k,c] <= xtot[r,n,0])
     end
     # -- demand
+    if load_shedding
     @constraint(model, [r in ["ℓ"], n in N, k in K, c in C], yd[r,n,k,c] <= ȳℓ[n,k])
-    if !isempty(setdiff(D, ["ℓ"]))
+    else
+        for c in C
+            fix.(yd["ℓ",:,:,c], ȳℓ; force = true)
+        end
+    end
+    if "g" in D
+        @constraint(model, [r in ["g"], n in N, k in K, c in C], yd[r,n,k,c] <= xtot[r,n,c])
+    end
+    if !isempty(setdiff(D, ["ℓ", "g"]))
         @constraint(model, [r in setdiff(D, ["ℓ"]), n in N, k in K, c in C], yd[r,n,k,c] <= xtot[r,n,0])
     end
     if "s" in R

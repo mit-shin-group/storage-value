@@ -34,6 +34,8 @@ function print_planning_results(result_file::String)
     println(case_data.Cs)
     # value of lost load in 2025
     println(mean(case_data.pd["ℓ", 2025, :]))
+    # load shedding
+    println(case_data.load_shedding)
     # time horizon
     println(length(case_data.K))
     # contingency probability

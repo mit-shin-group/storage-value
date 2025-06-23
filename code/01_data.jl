@@ -75,6 +75,8 @@ end
     market::Market
     # Discount rate
     r::Float64
+    # Allow for load schedding
+    load_shedding::Bool
     # Gurobi parameters
     grb_silent::Bool
     grb_mipgap::Float64
@@ -118,7 +120,7 @@ end
     grb_timelimit::Union{Nothing, Float64} = nothing
 end
 
-function build_data_plan(; date::String = "peak", market::Market = full, grb_silent::Bool = true, grb_mipgap::Float64 = 0.001, grb_timelimit::Union{Float64, Nothing} = nothing, Cs::Union{Float64, Nothing} = 150.)
+function build_data_plan(; date::String = "peak", market::Market = full, grb_silent::Bool = true, grb_mipgap::Float64 = 0.001, grb_timelimit::Union{Float64, Nothing} = nothing, Cs::Union{Float64, Nothing} = 150., load_shedding::Bool = true)
     # - planning horizon
     N = 2025:2050
     # - contingency set
@@ -206,9 +208,9 @@ function build_data_plan(; date::String = "peak", market::Market = full, grb_sil
         pg = yearly_data[!, "Price"]
         T = Containers.@container([n in N, c in C],
             if c == 0.
-                0.5
+                0.8
             else
-                0.5
+                0.2
             end
         )
     end
@@ -236,7 +238,7 @@ function build_data_plan(; date::String = "peak", market::Market = full, grb_sil
         R = R, I = I, D = D, N = N, K = K, C = C, Nr = Nr, T = T,
         p = p, c0 = c0, ps = ps, pd = pd, x0 = x0, x̲ = x̲, x̄ = x̄,
         ȳℓ = ȳℓ, Δt = Δt, ηc = ηc, ηd = ηd, Ts = Ts, Cs = Cs,
-        market = market, r = discount_rate, grb_silent = grb_silent, grb_mipgap = grb_mipgap, grb_timelimit = grb_timelimit
+        market = market, r = discount_rate, grb_silent = grb_silent, grb_mipgap = grb_mipgap, grb_timelimit = grb_timelimit, load_shedding = load_shedding
     )
 end
 

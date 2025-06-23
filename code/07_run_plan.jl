@@ -22,6 +22,14 @@ function parse_commandline()
             arg_type=Float64
             default=28800.
             help="Time limit for Gurobi solver in seconds"
+        "--load_shedding", "-l"
+            arg_type=Bool
+            default=true
+            help="Allow load shedding (default: true)"
+        "--mip_gap", "-g"
+            arg_type=Float64
+            default=0.001
+            help="MIP gap for Gurobi (default: 0.001)"
     end
     return parse_args(s)
 end
@@ -34,8 +42,10 @@ function main()
     market = parse_market(market_str)
     Cs = args["cycles"]
     timelimit = args["timelimit"]
+    load_shedding = args["load_shedding"]
+    grb_mipgap = args["mip_gap"]
     # run julia script
-    save_planning_results(run_model(build_data_plan(date = date, market = market, Cs = Cs, grb_silent = false, grb_mipgap = 0.001, grb_timelimit = timelimit)))
+    save_planning_results(run_model(build_data_plan(date = date, market = market, Cs = Cs, grb_silent = false, grb_mipgap = grb_mipgap, grb_timelimit = timelimit, load_shedding = load_shedding)))
 end
 
 main()
