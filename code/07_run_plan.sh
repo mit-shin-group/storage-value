@@ -19,5 +19,8 @@ while [[ "$#" -gt 0 ]]; do
     shift
 done
 
+# Set log file
+LOGFILE=results/planning/${DATES}${MARKET}${CYCLES}.log
+
 # Run your application
-julia +1.11.2 --project=. "code/07_run_plan.jl" -d $DATES -m $MARKET -c $CYCLES
+julia +1.11.2 --project=. "code/07_run_plan.jl" -d $DATES -m $MARKET -c $CYCLES >> $LOGFILE 2>&1
