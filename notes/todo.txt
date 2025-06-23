@@ -83,11 +83,78 @@ Ways forward:
 --> increase contingency probability to 50%
 
 Results:
--- increase lost load by a factor 8, by installing cable upgrades earlier. Still, no investment in backup generation.
+-- decrease lost load by a factor 8, by installing cable upgrades earlier. Still, no investment in backup generation.
 
 Question:
 - why no investment in backup generation?
 
---> check backup generation prices
+--> check backup generation prices (case_data)
 
 Alternative: run with higher value of lost load
+
+----------
+23 June 25 (backup deployment)
+
+Observation:
+-- There is no backup capacity in xtot for contingencies --> that's correct, because I'm only using xtot for base case for backup generation and storage. Also apparent from storage deployment when backup generation had lower costs.
+-- Backup generation price is constant at $305/MWh -- compare to 0.50€/kWh = 500€/MWh, this makes generation price makes sense.
+-- Investment cost: from $53/W to $2.6/W, i.e., 15MW would cost 80 million, it seems like this cost is twice as high as it should be
+--> I forgot to normalize by diesel capacity, so the per-unit capital cost was about 10 times higher than it should have been.
+--> new investment cost is $4.1/W, similar to grid expansion capital cost, but more modular
+
+Test:
+julia +1.11.2 --project=. code/07_run_plan.jl --dates year --market full --cycles 0. --timelimit 900.
+
+Way forward:
+-- decrease contingency probability
+-- increase MIPGap to 0.2% for prototyping
+
+Result:
+-- still no investment in backup generation
+
+--> run with higher value of lost load (20k is not high enough)
+
+Operating cost comparison:
+-- Backup generation: $305/MWh
+-- Grid: $40/MWh
+
+Observation:
+-- with Voll at 50k, investment into 4th line and reduction in total lost load from 4.6GWh to 2.8GWh up to 3.3GWh at 100k VOLL --> why?
+--> seems like MIP tolerance is the issue
+
+Way forward:
+-- run with no load shedding --> convert inequality to equality constraint
+
+--> julia +1.11.2 --project=. code/07_run_plan.jl --dates year --market full --cycles 0. --timelimit 900. --load_shedding false
+
+Observation:
+-- without load shedding, no load is shed (good)
+-- 80MW investment in line upgrades, 58MW in backup generation
+
+Question
+-- how does the solution depend on the optimality gap?
+-- and on the contingency probability?
+
+Next steps:
+-- run with 0.1% gap --> leads to reduced backup generation investments (120MW grid vs 22MW backup)
+-- run with 0.01% gap --> timed out
+-- run with contingency 10% and base case 90% and 0.1% gap (80MW Grid, 80MW backup)
+-- run with contingency 20% and base case 80% --> works nicely
+
+Overall result for today:
+-- corrected backup generation capital costs
+-- implemented no-load-shedding option
+-- found reasonable base vs contingency probabilities
+
+Next steps:
+run with different cycle limits and for peak shaving, use sbatch for this
+
+sbatch code/07_run_plan.sh --dates year --market full --cycles 0
+
+sbatch code/07_run_plan.sh --dates year --market full --cycles 150
+sbatch code/07_run_plan.sh --dates year --market full --cycles 366
+sbatch code/07_run_plan.sh --dates year --market peak_shaving --cycles 0
+sbatch code/07_run_plan.sh --dates year --market full --cycles 150
+sbatch code/07_run_plan.sh --dates year --market full --cycles 366
+
+
