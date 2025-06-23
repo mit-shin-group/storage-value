@@ -52,4 +52,42 @@ to do:
 
 Test: rerun julia --project=. code/07_run_plan.jl 
 -- on my PC running the planning problem takes over 3850s, while a decent solution is found 1000s.
---> add gurobi time limit for debugging.
+--> add gurobi time limit for debugging + optimality gap
+--> julia +1.11.2 --project=. code/07_run_plan.jl --dates year --market full --cycles 0. --timelimit 900.
+
+Results:
+-- solve time limit works
+-- much higher costs of lost load in the contingency scenario
+-- investing in two new lines only
+-- no exports
+-- storage is used to profit from negative prices (possible because only discharge cycles are constrained)
+-- it seems like more than 2 subsea cables are in service temporarily.
+--> check xtot["g", :] and x["g",:], indeed the 36MW cable is replaced in 2037 and the second cable is laid in 2038, several years before the 38MW cable reaches the end of its lifetime at the end of 2046.
+
+Conclusion:
+--> cost of lost load is too low to drive investment into third subsea cable/sufficient backup generation to cover demand, even in the base case 
+
+to do:
+--> rerun with value of lost load $10,000/MWh, set parameter in data_to_json.jl
+
+Results:
+-- no lost load in base case
+-- unmet load in contingency case reduced by a factor 5
+-- invest into three lines only
+-- x["g", :]: build in 2036, 2037,and 2047
+
+Ways forward:
+-- accept this as base case and run planning problem with storage, which may result in some storage installation as storage is cheaper than backup power
+-- do not accept this as in the absence of storage, the utility would probably want to withstand the contingency event --> expect to see either investment in a 4th cable or in backup generation.
+
+--> increase contingency probability to 50%
+
+Results:
+-- increase lost load by a factor 8, by installing cable upgrades earlier. Still, no investment in backup generation.
+
+Question:
+- why no investment in backup generation?
+
+--> check backup generation prices
+
+Alternative: run with higher value of lost load
