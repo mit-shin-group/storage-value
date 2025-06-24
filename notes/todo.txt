@@ -188,4 +188,6 @@ Next steps:
 sbatch code/07_run_plan.sh --dates year --market full --cycles 0 --shed false
 sbatch code/07_run_plan.sh --dates year --market full --cycles 150 --shed false
 
+remember to prototype with planning for peak days only, where applicable.
+
 
