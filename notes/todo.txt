@@ -179,9 +179,9 @@ Conclusion:
 -- peak shaving with storage is currently intractable
 
 Next steps:
--- check on progress of peak shaving with 366 cycles to see if the cycle constraint causes slow down --> seems worse/similar
+(done) check on progress of peak shaving with 366 cycles to see if the cycle constraint causes slow down --> seems worse/similar
 (done) fix NAN for storage cycles --> must be in 04_analysis.jl, run the print file on login node to debug --> NAN appears when a year has zero storage capacity
--- rerun experiments with no load shedding 
+(in progress) rerun experiments with no load shedding 
 -- fix state-of-charge at the beginning of each day to a single decision variable
 -- provide no cycle constraint option
 
