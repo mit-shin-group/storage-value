@@ -197,3 +197,13 @@ Allowing for active storage almost doubles solution time, even for full market p
 Fixing state-of-charge
 --> adjust build_model and data format: introduce equality constraints or have a function that adds operational problems for given days (daily decomposition)
 
+Data structure: dense axis array or dict? --> dict would allow to consider 23h and 25h days but be inconsistent with the rest of the model.
+
+Decision: go with dense axis array and neglect days with daylight savings time switches
+--> will require new benchmarking. Include option of time coupling into the optimization model.
+
+Summary for the day:
+-- implemented ybar_ell as a dense axis array with days as an index
+--> continue with pg
+
+overnight run full with 366 cycles
