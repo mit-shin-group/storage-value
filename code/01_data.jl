@@ -30,6 +30,10 @@ function read_data(file_path)
     end
 end
 
+function daystring(d::Date)
+    return string(Dates.monthname(d)[1:3], "-", lpad(day(d), 2, "0"))
+end
+
 @with_kw struct CaseDataPlan
     # Index Sets
     # - Supply resource types
@@ -213,6 +217,31 @@ function build_data_plan(; date::String = "peak", market::Market = full, grb_sil
                 0.2
             end
         )
+    elseif date == "all"
+        K = 1:24
+        grouped_data = groupby(yearly_data, :Day)
+        valid_dates = [g[1, :Day] for g in grouped_data if nrow(g) == length(K)]
+        day_labels = daystring.(valid_dates)  # already in chronological order
+
+        mw_dict = Dict{Tuple{String, Int}, Float64}()
+        pg_dict = Dict{Tuple{String, Int}, Float64}()
+
+        for g in grouped_data
+            if nrow(g) == length(K)
+                d = g[1, :Day]
+                label = daystring(d)
+                for row in eachrow(g)
+                    mw_dict[(label, row.Hour)] = row."MW Factor"
+                    pg_dict[(label, row.Hour)] = row."Price"
+                end
+            end
+        end
+        # Create a matrix with default values (e.g. 0.0)
+        mw_data = [get(mw_dict, (d, h), 0.0) * file_data["peak load evolution (MW)"][n̲(n, first(N))]/maximum(yearly_data[!, "MW Factor"]) for n in N, d in day_labels, h in K]
+        pg_data = [get(pg_dict, (d, h), 0.0) for d in day_labels, h in K]
+        # Create Containers.DenseAxisArray for ȳℓ and pg
+        ȳℓ = Containers.DenseAxisArray(mw_data, N, day_labels, K)
+        pg = Containers.DenseAxisArray(pg_data, day_labels, K)
     end
     # - overall operational prices
     ps = Containers.@container([r in R, n in N, k in K], 
