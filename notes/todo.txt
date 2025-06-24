@@ -190,4 +190,10 @@ sbatch code/07_run_plan.sh --dates year --market full --cycles 150 --shed false
 
 remember to prototype with planning for peak days only, where applicable.
 
+full market participation without load shedding is also slow
+
+Allowing for active storage almost doubles solution time, even for full market participation, i.e., the LP case.
+
+Fixing state-of-charge
+--> adjust build_model and data format: introduce equality constraints or have a function that adds operational problems for given days (daily decomposition)
 
