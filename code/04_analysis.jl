@@ -21,7 +21,7 @@ function save_planning_results(model_data::Tuple{Model, CaseDataPlan})
         "relative_gap" => Bool(MOI.get(model, Gurobi.ModelAttribute("IsMIP"))) ? relative_gap(model) : 0.,
     )
     # save model data and case_data to jld
-    filename = "results/planning/" * string(length(case_data.K)) * string(case_data.market) * string(Int(case_data.Cs)) * ".jld"
+    filename = "results/planning/" * string(length(case_data.K)) * string(case_data.market) * string(Int(case_data.Cs)) * "_shedding_" * stringh(case_data.load_shedding) * ".jld"
     @save filename model_results case_data
 end
 

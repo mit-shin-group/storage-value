@@ -7,6 +7,7 @@
 DATES=peak
 MARKET=full
 CYCLES=150.
+SHED=true
 
 # Get runtime arguments
 while [[ "$#" -gt 0 ]]; do
@@ -14,13 +15,14 @@ while [[ "$#" -gt 0 ]]; do
         --dates) DATES="$2"; shift ;;
         --market) MARKET="$2"; shift ;;
         --cycles) CYCLES="$2"; shift ;;
+        --shed) SHED="$2"; shift ;;
         *) echo "Unknown parameter: $1"; exit 1 ;;
     esac
     shift
 done
 
 # Set log file
-LOGFILE=results/planning/${DATES}${MARKET}${CYCLES}.log
+LOGFILE=results/planning/${DATES}_${MARKET}_${CYCLES}_${SHED}.log
 
 # Run your application
-julia +1.11.2 --project=. "code/07_run_plan.jl" -d $DATES -m $MARKET -c $CYCLES >> $LOGFILE 2>&1
+julia +1.11.2 --project=. "code/07_run_plan.jl" -d $DATES -m $MARKET -c $CYCLES -l $SHED >> $LOGFILE 2>&1
