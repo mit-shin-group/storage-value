@@ -65,15 +65,16 @@ function print_planning_results(result_file::String)
         # max.
         println(maximum(case_data.Δt * sum(model_results["ys"]["s",:,k,c] for k in case_data.K)./(case_data.ηd * case_data.Ts * model_results["xtot"]["s", :, 0])))   
     end
+    
     # total operating cost -- base case and contingency
     for c in case_data.C
-        println(case_data.Δt * sum( sum(case_data.ps[r,n,k] * model_results["ys"][r,n,k,c] for r in case_data.R) 
+        println(replace((case_data.Δt * sum( sum(case_data.ps[r,n,k] * model_results["ys"][r,n,k,c] for r in case_data.R) 
             - sum(case_data.pd[r,n,k] * model_results["yd"][r,n,k,c] for r in setdiff(case_data.D, ["ℓ"])) 
-            for n in case_data.N, k in case_data.K))
+            for n in case_data.N, k in case_data.K)).data, NaN => 0.0))
     end
     # total cost of lost load -- base case and contingency
     for c in case_data.C
-        println(case_data.Δt * sum(case_data.pd["ℓ",n,k] * (case_data.ȳℓ[n,k] - model_results["yd"]["ℓ",n,k,c]) for n in case_data.N, k in case_data.K))
+        println(replace((case_data.Δt * sum(case_data.pd["ℓ",n,k] * (case_data.ȳℓ[n,k] - model_results["yd"]["ℓ",n,k,c]) for n in case_data.N, k in case_data.K)).data, NaN => 0.0))
     end
     # total capital cost
     println(sum(case_data.p[r,n] * model_results["x"][r,n] + case_data.c0[r,n] * model_results["z"][r,n] for n in case_data.N for r in case_data.R))

@@ -154,7 +154,36 @@ sbatch code/07_run_plan.sh --dates year --market full --cycles 0
 sbatch code/07_run_plan.sh --dates year --market full --cycles 150
 sbatch code/07_run_plan.sh --dates year --market full --cycles 366
 sbatch code/07_run_plan.sh --dates year --market peak_shaving --cycles 0
-sbatch code/07_run_plan.sh --dates year --market full --cycles 150
-sbatch code/07_run_plan.sh --dates year --market full --cycles 366
+sbatch code/07_run_plan.sh --dates year --market peak_shaving --cycles 150
+sbatch code/07_run_plan.sh --dates year --market peak_shaving --cycles 366
+
+----------
+24 June 25 (storage deployment)
+
+peak shaving 150 is still running, peak shaving 366 had not started overnight
+I ran them with load shedding, but wanted to run without load shedding.
+
+Observation:
+(full market)
+-- 0 cycles: Grid 80MW, backup 30MW
+-- 150 cycles: Grid 120MW, backup 0MW
+-- 366 cycles: Grid 120MW, storage 8MW, but higher optimality gap and slightly lower objective value than with 150 cycles --> not trustworthy
+-- NAN for storage supply cycles even when battery is present and number of allowed cycles > 0
+(peak shaving)
+-- 0 cycles: Grid 120MW, backup 10MW, slightly lower optimality gap and higher objective value than with full market participation
+-- 150 cycles: Grid 0MW, backup 0Mw, storage 2MW, 40% optimality gap even after running for 8 hours
+-- 366 cycles: takes 10,000+s to reach an optimality gap of 40%.
+
+Conclusion:
+-- (near-)optimal solution landscape seems flat
+-- peak shaving with storage is currently intractable
+
+Next steps:
+-- check on progress of peak shaving with 366 cycles to see if the cycle constraint causes slow down --> seems worse/similar
+(done) fix NAN for storage cycles --> must be in 04_analysis.jl, run the print file on login node to debug --> NAN appears when a year has zero storage capacity
+-- rerun experiments with no load shedding 
+-- fix state-of-charge at the beginning of each day to a single decision variable
+-- provide no cycle constraint option
+
 
 
