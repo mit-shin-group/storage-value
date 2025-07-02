@@ -207,3 +207,65 @@ Summary for the day:
 --> continue with pg
 
 overnight run full with 366 cycles
+
+----------
+25 June 25 (daily decomposition)
+
+check on overnight run
+
+Observation:
+-- large speed-up by imposing no load shedding: from 12,200s to 700s albeit at slightly worse optimality gap (0.1% instead of 0.07%).
+-- large speed-up by relaxing cycle limit: from 7,700s to 700s 
+-- resulting capacity mix: 120MW cable expansion, 20MW storage, no more backup investment compared to 150 cycle case.
+
+Continue with independent day implementation and perform tests on full market participation.
+
+(done) adjusted data format
+
+question: how to get day-labels from DenseAxisArray
+days = [k[1] for k in keys(case_data.ȳℓ[2025,:,1])]
+
+Correction: I had not imposed a proper capacity limit on the state-of-charge! -- only on the terminal state-of-charge (maybe a copilot error since I had the proper .<= syntax)
+
+
+remains to complete market participation
+
+with separation by day, model building is slower (31 seconds)
+
+use time to look into Benders or bundle methods?
+
+Observation:
+-- with daily decomposition and bound on the state-of-charge: 0 cycle case shows lower surplus and almost 10 times longer run time. Why?
+--> contingency costs show big difference
+
+Hypothesis:
+--> battery is charged less? But, no, we already had a bound on the terminal state-of-charge previously.
+--> check storage demand, did indeed vanish because we now have an equality constraint on the terminal state-of-charge, 780MWh originally, how much revenue does that contribute --> $19.5k in both base case and contingency
+--> makes sense that's limited because it requires negative prices.
+
+--> does not explain the 170 million drop in surplus
+
+----------
+26 June 25 (contingency costs)
+
+from yearly problem with no upper bound and 0 cycles to 0 cycles with daily decomposition and upper bound to 150 cycles:
+
+Backup investment: 25MW -> 82MW ->  13MW
+Grid investment:  120MW -> 80MW -> 160MW
+Storage investment: 0MW ->  0MW ->  17MW
+Contingency operating cost: $503M -> $333M
+
+Terminal capacity of 160MW? --> why is storage still needed? --> just for arbitrage? But arbitrage should induce peak-shaving and 120MW cable should be enough.
+
+Problem with prototyping is the time each optimization run takes.
+Include option to consider every other day?
+
+--> modify data generation.
+
+
+
+
+
+
+
+
