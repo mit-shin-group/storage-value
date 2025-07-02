@@ -10,6 +10,10 @@ function parse_commandline()
             arg_type=String
             default="peak"
             help="Operational horizon: peak or year"
+        "--stride", "-s"
+            arg_type=Int
+            default=1
+            help="Stride for daily operating problems"
         "--market", "-m"
             arg_type = String
             default = "full"
@@ -38,6 +42,7 @@ function main()
     # parse command line arguments
     args = parse_commandline()
     date = args["dates"]
+    stride = args["stride"]
     market_str = args["market"]
     market = parse_market(market_str)
     Cs = args["cycles"]
@@ -45,7 +50,7 @@ function main()
     load_shedding = args["load_shedding"]
     grb_mipgap = args["mip_gap"]
     # run julia script
-    save_planning_results(run_model(build_data_plan(date = date, market = market, Cs = Cs, grb_silent = false, grb_mipgap = grb_mipgap, grb_timelimit = timelimit, load_shedding = load_shedding)))
+    save_planning_results(run_model(build_data_plan(date = date, stride = stride, market = market, Cs = Cs, grb_silent = false, grb_mipgap = grb_mipgap, grb_timelimit = timelimit, load_shedding = load_shedding)))
 end
 
 main()

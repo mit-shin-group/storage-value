@@ -5,16 +5,24 @@ include("02_peak_shaving_potential.jl")
 function build_model(case_data::CaseDataPlan; env::Gurobi.Env = Gurobi.Env())
     # this function requires ["g"] in R and ["ℓ"] in D
     # unpack important data
-    @unpack R, D, N, K, C, x̲, x̄, x0, I, Nr, ȳℓ, Δt, ηc, ηd, Ts, p, ps, pd, c0, T, market, Cs, load_shedding = case_data
+    @unpack R, D, N, K, J, C, x̲, x̄, x0, I, Nr, ȳℓ, Δt, ηc, ηd, Ts, p, ps, pd, c0, T, market, Cs, load_shedding = case_data
     # set Gurobi environment
     model = Model(() -> Gurobi.Optimizer(env))
     # Decision variables
+    # - investment decisions
     @variable(model, x[r in R, n in N] >= 0)
     @variable(model, xtot[r in R, n in N, c in C] >= 0)
     @variable(model, xmax[n in N] >= 0)
-    @variable(model, ys[r in R, n in N, k in K, c in C] >= 0)
-    @variable(model, yd[r in D, n in N, k in K, c in C] >= 0)
     @variable(model, z[r in R, n in N], Bin)
+    # - operating decisions
+    if isnothing(J)
+        @variable(model, ys[r in R, n in N, k in K, c in C] >= 0)
+        @variable(model, yd[r in D, n in N, k in K, c in C] >= 0)
+    else
+        @variable(model, ys[r in R, n in N, j in J, k in K, c in C] >= 0)
+        @variable(model, yd[r in D, n in N, j in J, k in K, c in C] >= 0)
+    end
+    
     # constraints
     # - limited investment choice
     @constraint(model, [r in R, n in N], x[r,n] <= x̄[r] * z[r,n])
@@ -26,45 +34,90 @@ function build_model(case_data::CaseDataPlan; env::Gurobi.Env = Gurobi.Env())
     @constraint(model, [r in ["g"], n in N, c in C], xtot[r,n,c] == sum(x0[r, n, i] for i in I[r]) + sum(x[r,i] for i in n̲(n, Nr[r], N = N): n) - c*xmax[n])
     @constraint(model, [r in ["g"], n in N, i in n̲(n, Nr[r], N = N):n], xmax[n] >= x[r, i])
     @constraint(model, [r in ["g"], n in N, i in I[r]], xmax[n] >= x0[r, n, i])
-    # - balance
-    @constraint(model, [n in N, k in K, c in C], sum(ys[r,n,k,c] for r in R) == sum(yd[r,n,k,c] for r in D))
-    # - capacity limit
-    # -- supply
-    @constraint(model, [r in ["g"], n in N, k in K, c in C], ys[r,n,k,c] <= xtot[r,n,c])
-    if !isempty(setdiff(R, ["g"]))
-        @constraint(model, [r in setdiff(R, ["g"]), n in N, k in K, c in C], ys[r,n,k,c] <= xtot[r,n,0])
-    end
-    # -- demand
-    if load_shedding
-    @constraint(model, [r in ["ℓ"], n in N, k in K, c in C], yd[r,n,k,c] <= ȳℓ[n,k])
-    else
-        for c in C
-            fix.(yd["ℓ",:,:,c], ȳℓ; force = true)
-        end
-    end
-    if "g" in D
-        @constraint(model, [r in ["g"], n in N, k in K, c in C], yd[r,n,k,c] <= xtot[r,n,c])
-    end
-    if !isempty(setdiff(D, ["ℓ", "g"]))
-        @constraint(model, [r in setdiff(D, ["ℓ"]), n in N, k in K, c in C], yd[r,n,k,c] <= xtot[r,n,0])
-    end
+    # -- operational decisions
     if "s" in R
-        # - initial state of charge
+        # - initial state of charge 
         @variable(model, y0[n in N] >= 0)
         @constraint(model, [n in N], y0[n] <= Ts * xtot["s", n, 0])
-        # - evolving state of charge
-        @variable(model, ysoc[n in N, k in K, c in C] >= 0)
-        @constraint(model, [n in N, c in C], ysoc[n, end, c] .<= Ts * xtot["s", n, 0])
-        # - state-of-charge evolution
-        @constraint(model, [n in N, c in C], ysoc[n,1,c] == y0[n] + Δt * (ηc * yd["s", n, 1, c] - ys["s", n, 1, c] / ηd)) 
-        @constraint(model, [n in N, k in K[2:end], c in C], ysoc[n,k,c] == ysoc[n,k-1,c] + Δt * (ηc * yd["s", n, k, c] - ys["s", n, k, c] / ηd))
-        # - state of charge balance
-        @constraint(model, [n in N, c in C], ysoc[n, end, c] >= y0[n])
-        # - discharge limit
-        if !isnothing(Cs)
-            @constraint(model, [n in N, c in C], Δt * sum(ys["s",n,k,c] for k in K)/ηd <= Cs * Ts * xtot["s", n, 0])
+    end
+    if isnothing(J)
+        # - balance
+        @constraint(model, [n in N, k in K, c in C], sum(ys[r,n,k,c] for r in R) == sum(yd[r,n,k,c] for r in D))
+        # - capacity limit
+        # -- supply
+        @constraint(model, [r in ["g"], n in N, k in K, c in C], ys[r,n,k,c] <= xtot[r,n,c])
+        if !isempty(setdiff(R, ["g"]))
+            @constraint(model, [r in setdiff(R, ["g"]), n in N, k in K, c in C], ys[r,n,k,c] <= xtot[r,n,0])
+        end
+        # -- demand
+        if load_shedding
+            @constraint(model, [r in ["ℓ"], n in N, k in K, c in C], yd[r,n,k,c] <= ȳℓ[n,k])
+        else
+            for c in C
+                fix.(yd["ℓ",:,:,c], ȳℓ; force = true)
+            end
+        end
+        if "g" in D
+            @constraint(model, [r in ["g"], n in N, k in K, c in C], yd[r,n,k,c] <= xtot[r,n,c])
+        end
+        if !isempty(setdiff(D, ["ℓ", "g"]))
+            @constraint(model, [r in setdiff(D, ["ℓ"]), n in N, k in K, c in C], yd[r,n,k,c] <= xtot[r,n,0])
+        end
+        # - storage
+        if "s" in R
+            # - evolving state of charge
+            @variable(model, ysoc[n in N, k in K, c in C] >= 0)
+            @constraint(model, [n in N, c in C], ysoc[n, :, c] .<= Ts * xtot["s", n, 0])
+            # - state-of-charge evolution
+            @constraint(model, [n in N, c in C], ysoc[n,1,c] == y0[n] + Δt * (ηc * yd["s", n, 1, c] - ys["s", n, 1, c] / ηd)) 
+            @constraint(model, [n in N, k in K[2:end], c in C], ysoc[n,k,c] == ysoc[n,k-1,c] + Δt * (ηc * yd["s", n, k, c] - ys["s", n, k, c] / ηd))
+            # - state of charge balance
+            @constraint(model, [n in N, c in C], ysoc[n, end, c] >= y0[n])
+            # - discharge limit
+            if !isnothing(Cs)
+                @constraint(model, [n in N, c in C], Δt * sum(ys["s",n,k,c] for k in K)/ηd <= Cs * Ts * xtot["s", n, 0])
+            end
+        end
+    else
+        # - balance
+        @constraint(model, [n in N, j in J, k in K, c in C], sum(ys[r,n,j,k,c] for r in R) == sum(yd[r,n,j,k,c] for r in D))
+        # - capacity limit
+        # -- supply
+        @constraint(model, [r in ["g"], n in N, j in J, k in K, c in C], ys[r,n,j,k,c] <= xtot[r,n,c])
+        if !isempty(setdiff(R, ["g"]))
+            @constraint(model, [r in setdiff(R, ["g"]), n in N, j in J, k in K, c in C], ys[r,n,j,k,c] <= xtot[r,n,0])
+        end
+        # -- demand
+        if load_shedding
+            @constraint(model, [r in ["ℓ"], n in N, j in J, k in K, c in C], yd[r,n,j,k,c] <= ȳℓ[n,j,k])
+        else
+            for c in C
+                fix.(yd["ℓ",:,:,:,c], ȳℓ; force = true)
+            end
+        end
+        if "g" in D
+            @constraint(model, [r in ["g"], n in N, j in J, k in K, c in C], yd[r,n,j,k,c] <= xtot[r,n,c])
+        end
+        if !isempty(setdiff(D, ["ℓ", "g"]))
+            @constraint(model, [r in setdiff(D, ["ℓ"]), n in N, j in J, k in K, c in C], yd[r,n,j,k,c] <= xtot[r,n,0])
+        end
+        # - storage
+        if "s" in R
+            # - evolving state of charge
+            @variable(model, ysoc[n in N, j in J, k in K, c in C] >= 0)
+            @constraint(model, [n in N, c in C], ysoc[n, :, :, c] .<= Ts * xtot["s", n, 0])
+            # - state-of-charge evolution
+            @constraint(model, [n in N, j in J, c in C], ysoc[n,j,1,c] == y0[n] + Δt * (ηc * yd["s", n, j, 1, c] - ys["s", n, j, 1, c] / ηd)) 
+            @constraint(model, [n in N, j in J, k in K[2:end], c in C], ysoc[n,j,k,c] == ysoc[n,j,k-1,c] + Δt * (ηc * yd["s", n, j, k, c] - ys["s", n, j, k, c] / ηd))
+            # - state of charge balance
+            @constraint(model, [n in N, j in J, c in C], ysoc[n, j, end, c] == y0[n])
+            # - discharge limit
+            if !isnothing(Cs)
+                @constraint(model, [n in N, c in C], Δt * sum(ys["s",n,j,k,c] for k in K for j in J)/ηd <= Cs * Ts * xtot["s", n, 0])
+            end
         end
     end
+
     # - market participation
     if market == no_exports
         @constraint(model, [r in ["g"], n in N, k in K, c in C], yd[r,n,k,c] == 0)
@@ -83,10 +136,17 @@ function build_model(case_data::CaseDataPlan; env::Gurobi.Env = Gurobi.Env())
         @constraint(model, [n in N, k in K, c in C], sum(ys[r,n,k,c] for r in setdiff(R, ["g"]); init = 0) <= zM[n,k,c] * M̅2)
     end
     # objective
-    @objective(model, Min, sum( sum( p[r,n] * x[r,n] + c0[r,n] * z[r,n] for r in R) 
-    + sum( T[n,c] * sum( sum( ps[r,n,k] * ys[r,n,k,c] for r in R) 
-    - sum(pd[r,n,k] * yd[r,n,k,c] for r in D) for k in K) for c in C) 
-    for n in N))
+    if isnothing(J)
+        @objective(model, Min, sum( sum( p[r,n] * x[r,n] + c0[r,n] * z[r,n] for r in R) 
+        + sum( T[n,c] * sum( sum( ps[r,n,k] * ys[r,n,k,c] for r in R) 
+        - sum(pd[r,n,k] * yd[r,n,k,c] for r in D) for k in K) for c in C) 
+        for n in N))
+    else
+        @objective(model, Min, sum( sum( p[r,n] * x[r,n] + c0[r,n] * z[r,n] for r in R) 
+        + sum( T[n,j,c] * sum( sum( ps[r,n,j,k] * ys[r,n,j,k,c] for r in R) 
+        - sum(pd[r,n,j,k] * yd[r,n,j,k,c] for r in D) for k in K) for j in J for c in C) 
+        for n in N))
+    end
     # Return result
     return model
 end

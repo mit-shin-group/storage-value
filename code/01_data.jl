@@ -44,7 +44,9 @@ end
     D::Vector{String}
     # - Planning periods
     N::UnitRange{Int64}
-    # - Operating periods
+    # - Operating superperiods (e.g., days) -- optional
+    J::Union{Nothing, Vector{String}} = nothing
+    # - Operating elemental periods (e.g., hours)
     K::UnitRange{Int64}
     # - Contingencies
     C::UnitRange{Int64}
@@ -124,7 +126,7 @@ end
     grb_timelimit::Union{Nothing, Float64} = nothing
 end
 
-function build_data_plan(; date::String = "peak", market::Market = full, grb_silent::Bool = true, grb_mipgap::Float64 = 0.001, grb_timelimit::Union{Float64, Nothing} = nothing, Cs::Union{Float64, Nothing} = 150., load_shedding::Bool = true)
+function build_data_plan(; date::String = "peak", stride::Int = 1, market::Market = full, grb_silent::Bool = true, grb_mipgap::Float64 = 0.001, grb_timelimit::Union{Float64, Nothing} = nothing, Cs::Union{Float64, Nothing} = 150., load_shedding::Bool = true)
     # - planning horizon
     N = 2025:2050
     # - contingency set
@@ -185,46 +187,82 @@ function build_data_plan(; date::String = "peak", market::Market = full, grb_sil
     # - max number of storage cycles per planning period
     Cs = Cs
     # date-dependent parameters
-    if date == "peak"
-        # based on the N days with highest load in the reference year and on load growth projection
-        K = 1:24
-        N_days = 5
-        top_days = sort(combine(groupby(yearly_data, :Day), :"MW Factor" => maximum => :PeakLoad), :PeakLoad, rev=true)[1:N_days, :Day]
-        peak_day = combine(groupby(filter(row -> row.Day in top_days, yearly_data), :Hour), 
-        :"MW Factor" => maximum => :Load,
-        :"Price" => mean => :Price
-        )
-        # linear scaling for load evolution
-        ȳℓ = Containers.@container([n in N, k in K], peak_day[!, :Load][k] * file_data["peak load evolution (MW)"][n̲(n, first(N))]/maximum(peak_day[!, :Load]))
-        # price of grid electricity
-        pg = peak_day[!, :Price]
-        # probability-adjusted peak load days
-        T = Containers.@container([n in N, c in C],
-            if c == 0.
-                (15:40)[n̲(n, first(N))]
+    if date in ["peak", "year"]
+        if date == "peak"
+            # based on the N days with highest load in the reference year and on load growth projection
+            K = 1:24
+            N_days = 5
+            top_days = sort(combine(groupby(yearly_data, :Day), :"MW Factor" => maximum => :PeakLoad), :PeakLoad, rev=true)[1:N_days, :Day]
+            peak_day = combine(groupby(filter(row -> row.Day in top_days, yearly_data), :Hour), 
+            :"MW Factor" => maximum => :Load,
+            :"Price" => mean => :Price
+            )
+            # linear scaling for load evolution
+            ȳℓ = Containers.@container([n in N, k in K], peak_day[!, :Load][k] * file_data["peak load evolution (MW)"][n̲(n, first(N))]/maximum(peak_day[!, :Load]))
+            # price of grid electricity
+            pg = peak_day[!, :Price]
+            # probability-adjusted peak load days
+            T = Containers.@container([n in N, c in C],
+                if c == 0.
+                    (15:40)[n̲(n, first(N))]
+                else
+                    (0.2 * (15:40))[n̲(n, first(N))]
+                end
+            )   
+        elseif date == "year"
+            K = 1:nrow(yearly_data)
+            ȳℓ = Containers.@container([n in N, k in K], yearly_data[!, "MW Factor"][k] * file_data["peak load evolution (MW)"][n̲(n, first(N))]/maximum(yearly_data[!, "MW Factor"]))
+            pg = yearly_data[!, "Price"]
+            T = Containers.@container([n in N, c in C],
+                if c == 0.
+                    0.8
+                else
+                    0.2
+                end
+            )
+        end
+        # - overall operational prices
+        ps = Containers.@container([r in R, n in N, k in K], 
+            if r == "g"
+                pg[k] * (1 - discount_rate)^(n - first(N))
+            elseif r == "b"
+                pb[n̲(n, first(N))]
             else
-                (0.2 * (15:40))[n̲(n, first(N))]
-            end
-        )   
-    elseif date == "year"
-        K = 1:nrow(yearly_data)
-        ȳℓ = Containers.@container([n in N, k in K], yearly_data[!, "MW Factor"][k] * file_data["peak load evolution (MW)"][n̲(n, first(N))]/maximum(yearly_data[!, "MW Factor"]))
-        pg = yearly_data[!, "Price"]
-        T = Containers.@container([n in N, c in C],
-            if c == 0.
-                0.8
-            else
-                0.2
+                0.
             end
         )
+        pd = Containers.@container([r in D, n in N, k in K], 
+            if r == "g"
+                pg[k] * (1 - discount_rate)^(n - first(N))
+            elseif r == "ℓ"
+                pℓ[n̲(n, first(N))]
+            else
+                0.
+            end
+        )
+        J = nothing  # no operating superperiods for peak or year
     elseif date == "all"
         K = 1:24
         grouped_data = groupby(yearly_data, :Day)
-        valid_dates = [g[1, :Day] for g in grouped_data if nrow(g) == length(K)]
-        day_labels = daystring.(valid_dates)  # already in chronological order
+        # Filter for complete days, then select every N-th group
+        filtered_groups = [g for (i, g) in enumerate(grouped_data) if nrow(g) == length(K)]
+        strided_groups = filtered_groups[1:stride:end]        
+        # valid_dates = [g[1, :Day] for g in grouped_data if nrow(g) == length(K)]
+        # strided_dates = valid_dates[1:stride:end]
+        # day_labels = daystring.(strided_dates)  # already in chronological order
 
         mw_dict = Dict{Tuple{String, Int}, Float64}()
         pg_dict = Dict{Tuple{String, Int}, Float64}()
+        day_labels = String[]
+
+        for g in strided_groups
+            label = daystring(g[1, :Day])
+            push!(day_labels, label)
+            for row in eachrow(g)
+                mw_dict[(label, row.Hour)] = row."MW Factor"
+                pg_dict[(label, row.Hour)] = row."Energy Component"
+            end
+        end
 
         for g in grouped_data
             if nrow(g) == length(K)
@@ -238,33 +276,43 @@ function build_data_plan(; date::String = "peak", market::Market = full, grb_sil
         end
         # Create a matrix with default values (e.g. 0.0)
         mw_data = [get(mw_dict, (d, h), 0.0) * file_data["peak load evolution (MW)"][n̲(n, first(N))]/maximum(yearly_data[!, "MW Factor"]) for n in N, d in day_labels, h in K]
-        pg_data = [get(pg_dict, (d, h), 0.0) for d in day_labels, h in K]
+        # pg_data = [get(pg_dict, (d, h), 0.0) for d in day_labels, h in K]
         # Create Containers.DenseAxisArray for ȳℓ and pg
         ȳℓ = Containers.DenseAxisArray(mw_data, N, day_labels, K)
-        pg = Containers.DenseAxisArray(pg_data, day_labels, K)
+        # pg = Containers.DenseAxisArray(pg_data, day_labels, K)
+        # Operational prices
+        ps = Containers.@container([r in R, n in N, d in day_labels, k in K], 
+            if r == "g"
+                pg_dict[(d,k)] * (1 - discount_rate)^(n - first(N))
+            elseif r == "b"
+                pb[n̲(n, first(N))]
+            else
+                0.
+            end
+        )
+        pd = Containers.@container([r in D, n in N, d in day_labels, k in K], 
+            if r == "g"
+                pg_dict[(d,k)] * (1 - discount_rate)^(n - first(N))
+            elseif r == "ℓ"
+                pℓ[n̲(n, first(N))]
+            else
+                0.
+            end
+        )
+        # base and contingency probabilities
+        T = Containers.@container([n in N, d in day_labels, c in C],
+                if c == 0.
+                    0.8
+                else
+                    0.2
+                end
+        )
+        J = day_labels  # operating superperiods are the days
     end
-    # - overall operational prices
-    ps = Containers.@container([r in R, n in N, k in K], 
-        if r == "g"
-            pg[k] * (1 - discount_rate)^(n - first(N))
-        elseif r == "b"
-            pb[n̲(n, first(N))]
-        else
-            0.
-        end
-    )
-    pd = Containers.@container([r in D, n in N, k in K], 
-        if r == "g"
-            pg[k] * (1 - discount_rate)^(n - first(N))
-        elseif r == "ℓ"
-            pℓ[n̲(n, first(N))]
-        else
-            0.
-        end
-    )
+   
     # fill case_data
     return CaseDataPlan(
-        R = R, I = I, D = D, N = N, K = K, C = C, Nr = Nr, T = T,
+        R = R, I = I, D = D, N = N, K = K, J = J, C = C, Nr = Nr, T = T,
         p = p, c0 = c0, ps = ps, pd = pd, x0 = x0, x̲ = x̲, x̄ = x̄,
         ȳℓ = ȳℓ, Δt = Δt, ηc = ηc, ηd = ηd, Ts = Ts, Cs = Cs,
         market = market, r = discount_rate, grb_silent = grb_silent, grb_mipgap = grb_mipgap, grb_timelimit = grb_timelimit, load_shedding = load_shedding

@@ -21,7 +21,7 @@ function save_planning_results(model_data::Tuple{Model, CaseDataPlan})
         "relative_gap" => Bool(MOI.get(model, Gurobi.ModelAttribute("IsMIP"))) ? relative_gap(model) : 0.,
     )
     # save model data and case_data to jld
-    filename = "results/planning/" * string(length(case_data.K)) * string(case_data.market) * string(Int(case_data.Cs)) * "_shedding_" * string(case_data.load_shedding) * ".jld"
+    filename = "results/planning/" * string(length(case_data.K)) * string(case_data.market) * string(isnothing(case_data.Cs) ? "_nocyclelimit" : Int(case_data.Cs)) * "_shedding_" * string(case_data.load_shedding) * ".jld"
     @save filename model_results case_data
 end
 
@@ -33,15 +33,17 @@ function print_planning_results(result_file::String)
     # max. battery cycles per year
     println(case_data.Cs)
     # value of lost load in 2025
-    println(mean(case_data.pd["ℓ", 2025, :]))
+    println(mean(isnothing(case_data.J) ? case_data.pd["ℓ", 2025, :] : case_data.pd["ℓ", 2025, :, :] ))
     # load shedding
     println(case_data.load_shedding)
-    # time horizon
+    # operational time horizon
     println(length(case_data.K))
+    # number of operational periods per planning period
+    println(isnothing(case_data.J) ? 1 : length(case_data.J))
     # contingency probability
-    println(100*mean(case_data.T[:,1]))
+    println(100*mean( isnothing(case_data.J) ? case_data.T[:,1] : case_data.T[:,:,1]))
     # base case probability
-    println(100*mean(case_data.T[:,0]))
+    println(100*mean(isnothing(case_data.J) ? case_data.T[:,1] : case_data.T[:,:,0]))
     # available resources
     println(case_data.R)
     # market participation
@@ -56,25 +58,48 @@ function print_planning_results(result_file::String)
     println(model_results["solve_time"])
     # maximum optimality gap
     println(100 * model_results["relative_gap"])
-    # complementarity violation
-    println(sum((model_results["ys"]["s", :, :, :] .* model_results["yd"]["s", :, : , :]) .>= 1e-8)/length(model_results["yd"]["s", :, : , :]))
-    # storage supply cycles
-    for c in case_data.C
-        # avg.
-        println(mean(replace((case_data.Δt * sum(model_results["ys"]["s",:,k,c] for k in case_data.K)./(case_data.ηd * case_data.Ts * model_results["xtot"]["s", :, 0])).data, NaN => 0.0)))
-        # max.
-        println(maximum(replace((case_data.Δt * sum(model_results["ys"]["s",:,k,c] for k in case_data.K)./(case_data.ηd * case_data.Ts * model_results["xtot"]["s", :, 0])).data, NaN => 0.0)))
-    end
-    
-    # total operating cost -- base case and contingency
-    for c in case_data.C
-        println(case_data.Δt * sum( sum(case_data.ps[r,n,k] * model_results["ys"][r,n,k,c] for r in case_data.R) 
-            - sum(case_data.pd[r,n,k] * model_results["yd"][r,n,k,c] for r in setdiff(case_data.D, ["ℓ"])) 
-            for n in case_data.N, k in case_data.K))
-    end
-    # total cost of lost load -- base case and contingency
-    for c in case_data.C
-        println(case_data.Δt * sum(case_data.pd["ℓ",n,k] * (case_data.ȳℓ[n,k] - model_results["yd"]["ℓ",n,k,c]) for n in case_data.N, k in case_data.K))
+    if isnothing(case_data.J)
+        # complementarity violation
+        println(sum((model_results["ys"]["s", :, :, :] .* model_results["yd"]["s", :, : , :]) .>= 1e-8)/length(model_results["yd"]["s", :, : , :]))
+        # storage supply cycles
+        for c in case_data.C
+            # avg.
+            println(mean(replace((case_data.Δt * sum(model_results["ys"]["s",:,k,c] for k in case_data.K)./(case_data.ηd * case_data.Ts * model_results["xtot"]["s", :, 0])).data, NaN => 0.0)))
+            # max.
+            println(maximum(replace((case_data.Δt * sum(model_results["ys"]["s",:,k,c] for k in case_data.K)./(case_data.ηd * case_data.Ts * model_results["xtot"]["s", :, 0])).data, NaN => 0.0)))
+        end
+        
+        # total operating cost -- base case and contingency
+        for c in case_data.C
+            println(case_data.Δt * sum( sum(case_data.ps[r,n,k] * model_results["ys"][r,n,k,c] for r in case_data.R) 
+                - sum(case_data.pd[r,n,k] * model_results["yd"][r,n,k,c] for r in setdiff(case_data.D, ["ℓ"])) 
+                for n in case_data.N, k in case_data.K))
+        end
+        # total cost of lost load -- base case and contingency
+        for c in case_data.C
+            println(case_data.Δt * sum(case_data.pd["ℓ",n,k] * (case_data.ȳℓ[n,k] - model_results["yd"]["ℓ",n,k,c]) for n in case_data.N, k in case_data.K))
+        end
+    else
+        # complementarity violation
+        println(sum((model_results["ys"]["s", :, :, :, :] .* model_results["yd"]["s", :, : , :, :]) .>= 1e-8)/length(model_results["yd"]["s", :, : , :, :]))
+        # storage supply cycles
+        for c in case_data.C
+            # avg.
+            println(mean(replace((case_data.Δt * sum(model_results["ys"]["s",:,j,k,c] for k in case_data.K for j in case_data.J)./(case_data.ηd * case_data.Ts * model_results["xtot"]["s", :, 0])).data, NaN => 0.0)))
+            # max.
+            println(maximum(replace((case_data.Δt * sum(model_results["ys"]["s",:,j,k,c] for k in case_data.K for j in case_data.J)./(case_data.ηd * case_data.Ts * model_results["xtot"]["s", :, 0])).data, NaN => 0.0)))
+        end
+        
+        # total operating cost -- base case and contingency
+        for c in case_data.C
+            println(case_data.Δt * sum( sum(case_data.ps[r,n,j,k] * model_results["ys"][r,n,j,k,c] for r in case_data.R) 
+                - sum(case_data.pd[r,n,j,k] * model_results["yd"][r,n,j,k,c] for r in setdiff(case_data.D, ["ℓ"])) 
+                for n in case_data.N, j in case_data.J, k in case_data.K))
+        end
+        # total cost of lost load -- base case and contingency
+        for c in case_data.C
+            println(case_data.Δt * sum(case_data.pd["ℓ",n,j,k] * (case_data.ȳℓ[n,j,k] - model_results["yd"]["ℓ",n,j,k,c]) for n in case_data.N, j in case_data.J, k in case_data.K))
+        end
     end
     # total capital cost
     println(sum(case_data.p[r,n] * model_results["x"][r,n] + case_data.c0[r,n] * model_results["z"][r,n] for n in case_data.N for r in case_data.R))
@@ -108,66 +133,131 @@ function print_planning_results(result_file::String)
     # -- operations
     for c in case_data.C
         println()
-        # max supply(MW)
-        println()
-        for r in ["b", "g", "s"]
-            if r in case_data.R
-                println(r == "g" ? max(maximum(model_results["ys"]["g", :, :, c] .- model_results["yd"]["g", :, :, c]), 0) : maximum(model_results["ys"][r, :, :, c])
-                )
-            else
-                println(0.)
+        if isnothing(case_data.J)
+            # max supply(MW)
+            println()
+            for r in ["b", "g", "s"]
+                if r in case_data.R
+                    println(r == "g" ? max(maximum(model_results["ys"]["g", :, :, c] .- model_results["yd"]["g", :, :, c]), 0) : maximum(model_results["ys"][r, :, :, c])
+                    )
+                else
+                    println(0.)
+                end
             end
-        end
-        println(maximum(case_data.ȳℓ .- model_results["yd"]["ℓ", :, :, c]))
-        # max demand (MW)
-        println()
-        for r in ["g", "ℓ", "s"]
-            if r in case_data.D
-                println(r == "g" ? max(maximum(model_results["yd"]["g", :, :, c] .- model_results["ys"]["g", :, :, c]), 0) : maximum(model_results["yd"][r, :, :, c])
-                )
-            else
-                println(0.)
+            println(maximum(case_data.ȳℓ .- model_results["yd"]["ℓ", :, :, c]))
+            # max demand (MW)
+            println()
+            for r in ["g", "ℓ", "s"]
+                if r in case_data.D
+                    println(r == "g" ? max(maximum(model_results["yd"]["g", :, :, c] .- model_results["ys"]["g", :, :, c]), 0) : maximum(model_results["yd"][r, :, :, c])
+                    )
+                else
+                    println(0.)
+                end
             end
-        end
-        # total supply (MWh)
-        println()
-        for r in ["b", "g", "s"]
-            if r in case_data.R
-                println(r == "g" ? case_data.Δt * sum(max.(model_results["ys"]["g", :, :, c] .- model_results["yd"]["g", :, :, c], 0)) : 
-                    case_data.Δt * sum(model_results["ys"][r, :, :, c]))
-            else
-                println(0.)
+            # total supply (MWh)
+            println()
+            for r in ["b", "g", "s"]
+                if r in case_data.R
+                    println(r == "g" ? case_data.Δt * sum(max.(model_results["ys"]["g", :, :, c] .- model_results["yd"]["g", :, :, c], 0)) : 
+                        case_data.Δt * sum(model_results["ys"][r, :, :, c]))
+                else
+                    println(0.)
+                end
             end
-        end
-        println(case_data.Δt * sum(case_data.ȳℓ .- model_results["yd"]["ℓ", :, :, c]))
-        # total demand (MWh)
-        println()
-        for r in ["g", "ℓ", "s"]
-            if r in case_data.D
-                println(r == "g" ? case_data.Δt * sum(max.(model_results["yd"]["g", :, :, c] .- model_results["ys"]["g", :, :, c], 0)) : 
-                    case_data.Δt * sum(model_results["yd"][r, :, :, c]))
-            else
-                println(0.)
+            println(case_data.Δt * sum(case_data.ȳℓ .- model_results["yd"]["ℓ", :, :, c]))
+            # total demand (MWh)
+            println()
+            for r in ["g", "ℓ", "s"]
+                if r in case_data.D
+                    println(r == "g" ? case_data.Δt * sum(max.(model_results["yd"]["g", :, :, c] .- model_results["ys"]["g", :, :, c], 0)) : 
+                        case_data.Δt * sum(model_results["yd"][r, :, :, c]))
+                else
+                    println(0.)
+                end
             end
-        end
-        # supply cost
-        println()
-        for r in ["b", "g", "s"]
-            if r in case_data.R
-                println(r == "g" ? case_data.Δt * sum(case_data.ps["g",:,:] .* max.(model_results["ys"]["g", :, :, c] .- model_results["yd"]["g", :, :, c], 0)) : 
-                    case_data.Δt * sum(case_data.ps[r,:,:] .* model_results["ys"][r, :, :, c]))
-            else
-                println(0.)
+            # supply cost
+            println()
+            for r in ["b", "g", "s"]
+                if r in case_data.R
+                    println(r == "g" ? case_data.Δt * sum(case_data.ps["g",:,:] .* max.(model_results["ys"]["g", :, :, c] .- model_results["yd"]["g", :, :, c], 0)) : 
+                        case_data.Δt * sum(case_data.ps[r,:,:] .* model_results["ys"][r, :, :, c]))
+                else
+                    println(0.)
+                end
             end
-        end
-        # demand revenue
-        println()   
-        for r in ["g", "ℓ", "s"]
-            if r in case_data.D
-                println(r == "g" ? case_data.Δt * sum(case_data.pd["g",:,:] .* max.(model_results["yd"]["g", :, :, c] .- model_results["ys"]["g", :, :, c], 0)) : 
-                    case_data.Δt * sum(case_data.pd[r,:,:] .* model_results["yd"][r, :, :, c]))
-            else
-                println(0.)
+            # demand revenue
+            println()   
+            for r in ["g", "ℓ", "s"]
+                if r in case_data.D
+                    println(r == "g" ? case_data.Δt * sum(case_data.pd["g",:,:] .* max.(model_results["yd"]["g", :, :, c] .- model_results["ys"]["g", :, :, c], 0)) : 
+                        case_data.Δt * sum(case_data.pd[r,:,:] .* model_results["yd"][r, :, :, c]))
+                else
+                    println(0.)
+                end
+            end
+        else
+            # max supply(MW)
+            println()
+            for r in ["b", "g", "s"]
+                if r in case_data.R
+                    println(r == "g" ? max(maximum(model_results["ys"]["g", :, :, :, c] .- model_results["yd"]["g", :, :, :, c]), 0) : maximum(model_results["ys"][r, :, :, :, c])
+                    )
+                else
+                    println(0.)
+                end
+            end
+            println(maximum(case_data.ȳℓ .- model_results["yd"]["ℓ", :, :, :, c]))
+            # max demand (MW)
+            println()
+            for r in ["g", "ℓ", "s"]
+                if r in case_data.D
+                    println(r == "g" ? max(maximum(model_results["yd"]["g", :, :, :, c] .- model_results["ys"]["g", :, :, :, c]), 0) : maximum(model_results["yd"][r, :, :, :, c])
+                    )
+                else
+                    println(0.)
+                end
+            end
+            # total supply (MWh)
+            println()
+            for r in ["b", "g", "s"]
+                if r in case_data.R
+                    println(r == "g" ? case_data.Δt * sum(max.(model_results["ys"]["g", :, :, :, c] .- model_results["yd"]["g", :, :, :, c], 0)) : 
+                        case_data.Δt * sum(model_results["ys"][r, :, :, :, c]))
+                else
+                    println(0.)
+                end
+            end
+            println(case_data.Δt * sum(case_data.ȳℓ .- model_results["yd"]["ℓ", :, :, :, c]))
+            # total demand (MWh)
+            println()
+            for r in ["g", "ℓ", "s"]
+                if r in case_data.D
+                    println(r == "g" ? case_data.Δt * sum(max.(model_results["yd"]["g", :, :, :, c] .- model_results["ys"]["g", :, :, :, c], 0)) : 
+                        case_data.Δt * sum(model_results["yd"][r, :, :, :, c]))
+                else
+                    println(0.)
+                end
+            end
+            # supply cost
+            println()
+            for r in ["b", "g", "s"]
+                if r in case_data.R
+                    println(r == "g" ? case_data.Δt * sum(case_data.ps["g",:,:,:] .* max.(model_results["ys"]["g", :, :, :, c] .- model_results["yd"]["g", :, :, :, c], 0)) : 
+                        case_data.Δt * sum(case_data.ps[r,:,:,:] .* model_results["ys"][r, :, :, :, c]))
+                else
+                    println(0.)
+                end
+            end
+            # demand revenue
+            println()   
+            for r in ["g", "ℓ", "s"]
+                if r in case_data.D
+                    println(r == "g" ? case_data.Δt * sum(case_data.pd["g",:,:,:] .* max.(model_results["yd"]["g", :, :, :, c] .- model_results["ys"]["g", :, :, :, c], 0)) : 
+                        case_data.Δt * sum(case_data.pd[r,:,:,:] .* model_results["yd"][r, :, :, :, c]))
+                else
+                    println(0.)
+                end
             end
         end
     end
