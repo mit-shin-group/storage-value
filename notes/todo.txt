@@ -246,6 +246,7 @@ Hypothesis:
 --> does not explain the 170 million drop in surplus
 
 ----------
+
 26 June 25 (contingency costs)
 
 from yearly problem with no upper bound and 0 cycles to 0 cycles with daily decomposition and upper bound to 150 cycles:
@@ -257,14 +258,58 @@ Contingency operating cost: $503M -> $333M
 
 Terminal capacity of 160MW? --> why is storage still needed? --> just for arbitrage? But arbitrage should induce peak-shaving and 120MW cable should be enough.
 
-Problem with prototyping is the time each optimization run takes.
+Problem with prototyping is the time each optimization run takes; between 700 and 7000s even without market participation constraints.
+
 Include option to consider every other day?
 
---> modify data generation.
+--> modify data generation, mostly costs?
 
+----------
 
+02 July 25 (stride and Benders: does that work with storage interday coupling through cycling limit -- feasibility cuts?, maybe also MIPFocus)
 
+experiment: run planning script with stride=2
 
+Variables:
+1,598,974 continuous, 78 integer (78 binary) --> as expected, reduced number of continuous variables by half, runs in 551s.
+
+fix data generation: modify not costs but Tnc, multiply by stride, valid as long as the total number of days is divisible by stride --> correcting now.
+
+with stride = 5 --> 57s --> much easier to experiment with
+
+----------
+
+07 July 25 (stride)
+
+(done) also need to adjust constraints, in particular the cycle limit, ideally adjust this in data generation as well; adjusted cycling constraints to avoid adjusting Cs
+
+check the solution:
+
+- Speedup from 7200s to 275s for 150 cycles full market participation wiht stride = 5.
+- Double the operating costs, base case has higher operating cost than contingency? --> corrected
+- Similar capital cost
+- No storage, only line and backup generation build-out
+- Max demand is a bit lower --> stride did not include the peak day
+- No backup supply in base case 
+- Similar base-case demand and operating costs in base case
+- heavier reliance on backup, lower reliance on storage in contingency
+- similar contingency operating costs
+
+to do:
+(done, parenthesis was missing) check reporting of total operating costs
+
+new experiments:
+1. full, zero cyle limit: 51s but of course no storage operations
+2. full, 365 cycles: 358.35s, compared to 1500s previously --> triggers storage investment
+3. full, 150 cycles, 12 stride, hope to get something close to a minute for prototyping --> 80s (close enough), triggers some storage investment, overall costs are quite similar.
+3. peak shaving, zero cycles (sbatch)
+4. peak shaving, 150 cycles (sbatch)
+
+printing file is correct
+
+peak_shaving runs failed --> update code logic for strided data.
+
+::::::::: Benders
 
 
 
