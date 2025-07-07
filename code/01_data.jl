@@ -126,7 +126,16 @@ end
     grb_timelimit::Union{Nothing, Float64} = nothing
 end
 
-function build_data_plan(; date::String = "peak", stride::Int = 1, market::Market = full, grb_silent::Bool = true, grb_mipgap::Float64 = 0.001, grb_timelimit::Union{Float64, Nothing} = nothing, Cs::Union{Float64, Nothing} = 150., load_shedding::Bool = true)
+function build_data_plan(; 
+    date::String = "peak", 
+    stride::Int = 1,
+    market::Market = full,
+    grb_silent::Bool = true,
+    grb_mipgap::Float64 = 0.001,
+    grb_timelimit::Union{Float64, Nothing} = nothing,
+    Cs::Union{Float64, Nothing} = 150.,
+    load_shedding::Bool = true
+    )
     # - planning horizon
     N = 2025:2050
     # - contingency set
@@ -185,7 +194,7 @@ function build_data_plan(; date::String = "peak", stride::Int = 1, market::Marke
     # - storage duration
     Ts = file_data["storage duration (h)"]
     # - max number of storage cycles per planning period
-    Cs = Cs
+    # Cs = Cs
     # date-dependent parameters
     if date in ["peak", "year"]
         if date == "peak"
@@ -246,10 +255,8 @@ function build_data_plan(; date::String = "peak", stride::Int = 1, market::Marke
         grouped_data = groupby(yearly_data, :Day)
         # Filter for complete days, then select every N-th group
         filtered_groups = [g for (i, g) in enumerate(grouped_data) if nrow(g) == length(K)]
+        total_groups = length(filtered_groups)
         strided_groups = filtered_groups[1:stride:end]        
-        # valid_dates = [g[1, :Day] for g in grouped_data if nrow(g) == length(K)]
-        # strided_dates = valid_dates[1:stride:end]
-        # day_labels = daystring.(strided_dates)  # already in chronological order
 
         mw_dict = Dict{Tuple{String, Int}, Float64}()
         pg_dict = Dict{Tuple{String, Int}, Float64}()
@@ -300,7 +307,7 @@ function build_data_plan(; date::String = "peak", stride::Int = 1, market::Marke
             end
         )
         # base and contingency probabilities
-        T = Containers.@container([n in N, d in day_labels, c in C],
+        T = total_groups/length(day_labels) .* Containers.@container([n in N, d in day_labels, c in C],
                 if c == 0.
                     0.8
                 else

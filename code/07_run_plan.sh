@@ -24,7 +24,7 @@ while [[ "$#" -gt 0 ]]; do
 done
 
 # Set log file
-LOGFILE=results/planning/${DATES}_${MARKET}_${CYCLES}_${SHED}.log
+LOGFILE=results/planning/${DATES}_${MARKET}_${CYCLES}_${SHED}_${STRIDE}.log
 
 # Run your application
 julia +1.11.2 --project=. "code/07_run_plan.jl" -d $DATES -m $MARKET -c $CYCLES -l $SHED -s $STRIDE >> $LOGFILE 2>&1
