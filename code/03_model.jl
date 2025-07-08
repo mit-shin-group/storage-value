@@ -78,6 +78,23 @@ function build_model(case_data::CaseDataPlan; env::Gurobi.Env = Gurobi.Env())
                 @constraint(model, [n in N, c in C], Δt * sum(sum(T[n,c] for c in C) * ys["s",n,k,c] for k in K)/ηd <= Cs * Ts * xtot["s", n, 0])
             end
         end
+        # - market participation
+        if market == no_exports
+            @constraint(model, [r in ["g"], n in N, k in K, c in C], yd[r,n,k,c] == 0)
+        elseif market == peak_shaving
+            # construct M -- (TODO: update constants)
+            x̄tot_s = compute_x̄tot_s(case_data)
+            M̲1 = -maximum(ȳℓ) - 2*x̄["g"]
+            M̲2 = -2*maximum(ȳℓ) - 2*x̄["g"] - x̄["b"] - x̄["s"] - x̄tot_s
+            M̅1 = compute_M̄1(case_data)
+            M̅2 = maximum(ȳℓ) + x̄["b"] + x̄["s"] + x̄tot_s
+            # add additional variables and constraints
+            @variable(model, zM[n in N, k in K, c in C], Bin)
+            @constraint(model, [n in N, k in K, c in C], (1 - zM[n,k,c]) * M̲1 <= yd["ℓ",n,k,c] - xtot["g",n,c])
+            @constraint(model, [n in N, k in K, c in C], zM[n,k,c] * M̅1[n,k,c] >= yd["ℓ",n,k,c] - xtot["g",n,c])
+            @constraint(model, [n in N, k in K, c in C], sum(ys[r,n,k,c] for r in setdiff(R, ["g"]); init = 0) <= yd["ℓ",n,k,c] - xtot["g", n, c] - (1 - zM[n,k,c])*M̲2)
+            @constraint(model, [n in N, k in K, c in C], sum(ys[r,n,k,c] for r in setdiff(R, ["g"]); init = 0) <= zM[n,k,c] * M̅2)
+        end
     else
         # - balance
         @constraint(model, [n in N, j in J, k in K, c in C], sum(ys[r,n,j,k,c] for r in R) == sum(yd[r,n,j,k,c] for r in D))
@@ -116,25 +133,25 @@ function build_model(case_data::CaseDataPlan; env::Gurobi.Env = Gurobi.Env())
                 @constraint(model, [n in N, c in C], Δt * sum( sum(T[n,j,c] for c in C) * ys["s",n,j,k,c] for k in K for j in J)/ηd <= Cs * Ts * xtot["s", n, 0])
             end
         end
+        # - market participation
+        if market == no_exports
+            @constraint(model, [r in ["g"], n in N, j in J, k in K, c in C], yd[r,n,j,k,c] == 0)
+        elseif market == peak_shaving
+            # construct M
+            # x̄tot_s = compute_x̄tot_s(case_data)
+            M̲1 = -maximum(ȳℓ) - 2*x̄["g"]
+            M̲2 = -maximum(ȳℓ) .- 2*x̄["g"] .- ȳℓ
+            M̅1 = compute_M̄1(case_data)
+            M̅2 = ȳℓ
+            # add additional variables and constraints
+            @variable(model, zM[n in N, j in J, k in K, c in C], Bin)
+            @constraint(model, [n in N, j in J, k in K, c in C], (1 - zM[n,j,k,c]) * M̲1 <= yd["ℓ",n,j,k,c] - xtot["g",n,c])
+            @constraint(model, [n in N, j in J, k in K, c in C], zM[n,j,k,c] * M̅1[n,j,k,c] >= yd["ℓ",n,j,k,c] - xtot["g",n,c])
+            @constraint(model, [n in N, j in J, k in K, c in C], sum(ys[r,n,j,k,c] for r in setdiff(R, ["g"]); init = 0) <= yd["ℓ",n,j,k,c] - xtot["g", n, c] - (1 - zM[n,j,k,c])*M̲2[n,j,k])
+            @constraint(model, [n in N, j in J, k in K, c in C], sum(ys[r,n,j,k,c] for r in setdiff(R, ["g"]); init = 0) <= zM[n,j,k,c] * M̅2[n,j,k])
+        end
     end
 
-    # - market participation
-    if market == no_exports
-        @constraint(model, [r in ["g"], n in N, k in K, c in C], yd[r,n,k,c] == 0)
-    elseif market == peak_shaving
-        # construct M
-        x̄tot_s = compute_x̄tot_s(case_data)
-        M̲1 = -maximum(ȳℓ) - 2*x̄["g"]
-        M̲2 = -2*maximum(ȳℓ) - 2*x̄["g"] - x̄["b"] - x̄["s"] - x̄tot_s
-        M̅1 = compute_M̄1(case_data)
-        M̅2 = maximum(ȳℓ) + x̄["b"] + x̄["s"] + x̄tot_s
-        # add additional variables and constraints
-        @variable(model, zM[n in N, k in K, c in C], Bin)
-        @constraint(model, [n in N, k in K, c in C], (1 - zM[n,k,c]) * M̲1 <= yd["ℓ",n,k,c] - xtot["g",n,c])
-        @constraint(model, [n in N, k in K, c in C], zM[n,k,c] * M̅1[n,k,c] >= yd["ℓ",n,k,c] - xtot["g",n,c])
-        @constraint(model, [n in N, k in K, c in C], sum(ys[r,n,k,c] for r in setdiff(R, ["g"]); init = 0) <= yd["ℓ",n,k,c] - xtot["g", n, c] - (1 - zM[n,k,c])*M̲2)
-        @constraint(model, [n in N, k in K, c in C], sum(ys[r,n,k,c] for r in setdiff(R, ["g"]); init = 0) <= zM[n,k,c] * M̅2)
-    end
     # objective
     if isnothing(J)
         @objective(model, Min, sum( sum( p[r,n] * x[r,n] + c0[r,n] * z[r,n] for r in R) 
@@ -254,7 +271,11 @@ function compute_xtot(x::Dict{Int64, Float64}, case_data::CaseDataPlan; r::Strin
 end
 
 function compute_M̄1(case_data::CaseDataPlan)
-    @unpack ȳℓ, N, K, C = case_data
+    @unpack ȳℓ, N, J, K, C = case_data
     xtot = compute_xtot(Dict(n => 0. for n in N), case_data, r = "g")
-    return Dict((n,k,c) => ȳℓ[n, k] - xtot[n,c] for n in N, k in K, c in C)
-end
+    if isnothing(J)
+        return Containers.@container([n in N, k in K, c in C], ȳℓ[n, k] - xtot[n,c])
+    else
+        return Containers.@container([n in N, j in J, k in K, c in C], ȳℓ[n, j, k] - xtot[n,c])
+    end
+end 
