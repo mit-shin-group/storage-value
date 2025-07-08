@@ -309,6 +309,18 @@ printing file is correct
 
 peak_shaving runs failed --> update code logic for strided data.
 
+----------
+
+08 July 25 (stride for peak shaving)
+
+Big-M computation is the challenge. Get tighter bounds with daily decomposition? --> yes, somewhat. Bounds can be further tightened by forbidding load shedding and accounting for asset lifetimes.
+
+Trial run with stride 48, required some tuning of arguments in the peak shaving function.
+
+Result: prefers to invest in backup generation, rather than storage
+
+test cases: stride: 24, 12, 6, 4, 3, 2
+
 ::::::::: Benders
 
 
