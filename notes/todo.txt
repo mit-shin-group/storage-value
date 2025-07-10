@@ -321,8 +321,18 @@ Result: prefers to invest in backup generation, rather than storage
 
 test cases: stride: 24, 12, 6, 4, 3, 2
 
+So far no storage investment yet in peak-shaving scenarios.
+
+study a no-backup solution? and maybe also limit grid expansion?
+
+----------
+
+09 July 25 (analyze stride for peak shaving)
+
+can still solve the peak-shaving problem reasonably well.
+try full year problem: 11.5h to get .17% optimality gap. 
+again --> only investment into subsea cables.
+
+build a simulator on all test days to get more realistic assessments and easier comparison?
+
 ::::::::: Benders
-
-
-
-
