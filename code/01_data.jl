@@ -130,6 +130,7 @@ function build_data_plan(;
     date::String = "peak", 
     stride::Int = 1,
     market::Market = full,
+    backup::Bool = true,
     grb_silent::Bool = true,
     grb_mipgap::Float64 = 0.001,
     grb_timelimit::Union{Float64, Nothing} = nothing,
@@ -147,9 +148,13 @@ function build_data_plan(;
     data_file = "data/Nantucket_2024.csv"
     yearly_data = CSV.read(data_file, DataFrame)
     # specify resources
-    R = ["b", "g", "s"]
+    if backup
+        R = ["b", "g", "s"]
+    else
+        R = ["g", "s"]
+    end
     D = ["g", "ℓ", "s"]
-    I = Dict(r => i for (r,i) in zip(R, [1:1, 1:2, 1:1]))
+    I = Dict(r => (r == "g" ? (1:2) : (1:1)) for r in R)
     # date-independent parameters
     pb = file_data["backup electricity price (\$/MWh)"]
     pℓ = file_data["value of lost load (\$/MWh)"]
