@@ -34,6 +34,10 @@ function parse_commandline()
             arg_type=Bool
             default=true
             help="Allow for backup generation (default: true)"    
+        "--new_backup"
+            arg_type=Bool
+            default=true
+            help="Allow for new backup investment (default: true)"    
         "--mip_gap", "-g"
             arg_type=Float64
             default=0.001
@@ -53,9 +57,10 @@ function main()
     timelimit = args["timelimit"]
     load_shedding = args["load_shedding"]
     backup = args["backup"]
+    new_backup = args["new_backup"]
     grb_mipgap = args["mip_gap"]
     # run julia script
-    save_planning_results(run_model(build_data_plan(date = date, stride = stride, market = market, Cs = Cs, grb_silent = false, grb_mipgap = grb_mipgap, grb_timelimit = timelimit, load_shedding = load_shedding, backup = backup)))
+    save_planning_results(run_model(build_data_plan(date = date, stride = stride, market = market, Cs = Cs, grb_silent = false, grb_mipgap = grb_mipgap, grb_timelimit = timelimit, load_shedding = load_shedding, backup = backup, new_backup = new_backup)))
 end
 
 main()

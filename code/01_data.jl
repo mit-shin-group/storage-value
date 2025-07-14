@@ -135,7 +135,8 @@ function build_data_plan(;
     grb_mipgap::Float64 = 0.001,
     grb_timelimit::Union{Float64, Nothing} = nothing,
     Cs::Union{Float64, Nothing} = 150.,
-    load_shedding::Bool = true
+    load_shedding::Bool = true,
+    new_backup::Bool = true
     )
     # - planning horizon
     N = 2025:2050
@@ -170,10 +171,10 @@ function build_data_plan(;
         end
     )
     # - investment ranges
-    x̲ = Dict("b" => file_data["backup min. investment (MW)"],
+    x̲ = Dict("b" => new_backup ? file_data["backup min. investment (MW)"] : 0,
             "g" => file_data["grid min. investment (MW)"],
             "s" => file_data["storage min. investment (MW)"])
-    x̄ = Dict("b" => file_data["backup max. investment (MW)"],
+    x̄ = Dict("b" => new_backup ? file_data["backup max. investment (MW)"] : 0,
             "g" => file_data["grid max. investment (MW)"],
             "s" => file_data["storage max. investment (MW)"])   
     # - investment cost

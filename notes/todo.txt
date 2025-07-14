@@ -354,4 +354,10 @@ Finally, get the results I have been expecting: very little difference between s
 
 How does 20 million compare to difference in optimality gaps?
 
+rerun with no backup investment and small optimality gap: 0.00001; no CPU nodes currently available.
+
+sbatch code/07_run_plan.sh --dates all --market full --cycles 150 --shed false --stride 2 --new_backup false --mipgap 0.0001
+
+lower optimality gap, zero new backup installation, no lock-in effects
+
 ::::::::: Benders

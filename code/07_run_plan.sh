@@ -10,6 +10,7 @@ CYCLES=150.
 SHED=true
 STRIDE=1
 BACKUP=true
+NEW_BACKUP=true
 MIPGAP=0.001
 
 # Get runtime arguments
@@ -21,14 +22,15 @@ while [[ "$#" -gt 0 ]]; do
         --shed) SHED="$2"; shift ;;
         --stride) STRIDE="$2"; shift ;;
         --backup) BACKUP="$2"; shift ;;
-	--mipgap) MIPGAP="$2"; shift ;;
+        --new_backup) NEW_BACKUP="$2"; shift ;;
+	    --mipgap) MIPGAP="$2"; shift ;;
 	*) echo "Unknown parameter: $1"; exit 1 ;;
     esac
     shift
 done
 
 # Set log file
-LOGFILE=results/planning/${DATES}_${MARKET}_${CYCLES}_${SHED}_${STRIDE}_${BACKUP}.log
+LOGFILE=results/planning/${DATES}_${MARKET}_${CYCLES}_${SHED}_${STRIDE}_${BACKUP}_${NEW_BACKUP}.log
 
 # Run your application
-julia +1.11.2 --project=. "code/07_run_plan.jl" -d $DATES -m $MARKET -c $CYCLES -l $SHED -s $STRIDE -b $BACKUP -g $MIPGAP >> $LOGFILE 2>&1
+julia +1.11.2 --project=. "code/07_run_plan.jl" -d $DATES -m $MARKET -c $CYCLES -l $SHED -s $STRIDE -b $BACKUP --new_backup $NEW_BACKUP -g $MIPGAP >> $LOGFILE 2>&1
