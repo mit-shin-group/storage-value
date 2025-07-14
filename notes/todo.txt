@@ -335,4 +335,23 @@ again --> only investment into subsea cables.
 
 build a simulator on all test days to get more realistic assessments and easier comparison?
 
+----------
+
+13 July 25
+
+solve without backup generation investment (both with full market participation and with peak shaving on, strided)
+
+peak_shaving: stride 2
+full: stride 1 and 2
+
+solve with smaller optimality gap: 0.0001
+
+----------
+
+14 July 25
+
+Finally, get the results I have been expecting: very little difference between storage investment, 20 million difference in surplus.
+
+How does 20 million compare to difference in optimality gaps?
+
 ::::::::: Benders
