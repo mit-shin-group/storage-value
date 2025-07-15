@@ -1,0 +1,1 @@
+julia +1.11.2 --project=. "code/08_run_analysis.jl" $1
