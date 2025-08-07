@@ -21,7 +21,7 @@ function save_planning_results(model_data::Tuple{Model, CaseDataPlan})
         "relative_gap" => Bool(MOI.get(model, Gurobi.ModelAttribute("IsMIP"))) ? relative_gap(model) : 0.,
     )
     # save model data and case_data to jld
-    filename = "results/planning/" * string(length(case_data.K)) * string(case_data.market) * string(isnothing(case_data.Cs) ? "_nocyclelimit" : Int(case_data.Cs)) * "_shedding_" * string(case_data.load_shedding) * "_" * string(isnothing(case_data.J) ? "no" : length(case_data.J)) * "J_backup_" * string("b" in case_data.R) * "_newbackup_" * string(case_data.x̄["b"] != 0.0) * "_newstorage_" * string(case_data.x̄["s"] != 0.0) * ".jld"
+    filename = "results/planning/" * string(length(case_data.K)) * string(case_data.market) * string(isnothing(case_data.Cs) ? "_nocyclelimit" : Int(case_data.Cs)) * "_shedding_" * string(case_data.load_shedding) * "_" * string(isnothing(case_data.J) ? "no" : length(case_data.J)) * "J_backup_" * string("b" in case_data.R) * "_newbackup_" * string(case_data.x̄["b"] != 0.0) * "_newstorage_" * string(case_data.x̄["s"] != 0.0) * "_freestorage_" * string(mean(case_data.p["s", :]) == 0) * ".jld"
     @save filename model_results case_data
 end
 
@@ -54,6 +54,10 @@ function print_planning_results(result_file::String)
     println(100*mean(isnothing(case_data.J) ? case_data.T[:,1] : case_data.T[:,:,0] ./ (case_data.T[:,:,0] .+ case_data.T[:,:,1])))
     # available resources
     println(case_data.R)
+    # max investments
+    println(values(case_data.x̄))
+    # free storage
+    println(mean(case_data.p["s", :]))
     # market participation
     println(case_data.market)
     # discount rate
