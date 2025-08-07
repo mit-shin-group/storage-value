@@ -379,4 +379,12 @@ no conflict between arbitrage and peak-shaving
 7 August 25
 run with free storage (V2G case)
 
-::::::::: Benders
+why is storage being overbuilt? 
+limited by energy rather than power? --> why would I need 32 hour storage?
+
+sh code/08_run_analysis.sh 8783no_exports150_shedding_false_noJ_backup_false_n
+ewbackup_true_newstorage_true_freestorage_false.jld
+
+sh code/07_run_plan.sh --dates year --market no_exports --cycles 150 --shed false --backup false --mipgap 0.00001 --free_storage true
+
+::::::::: Benders --> may not be necessary
