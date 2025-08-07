@@ -360,4 +360,23 @@ sbatch code/07_run_plan.sh --dates all --market full --cycles 150 --shed false -
 
 lower optimality gap, zero new backup installation, no lock-in effects
 
+----------
+
+18 July 25
+
+Check investment timing --> jld arrays
+Create julia function for doing this quickly.
+
+Recreate arrays that I want analyzed?
+
+----------
+21 July 25
+smaller contingency cost in peak shaving cases --> because storage for peak shaving triggers some amount of arbitrage
+
+no conflict between arbitrage and peak-shaving
+
+----------
+7 August 25
+run with free storage (V2G case)
+
 ::::::::: Benders
