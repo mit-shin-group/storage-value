@@ -25,6 +25,14 @@ function save_planning_results(model_data::Tuple{Model, CaseDataPlan})
     @save filename model_results case_data
 end
 
+function print_investment(result_file::String, r::String)
+    planning_results = JLD2.load("results/planning/" * result_file)
+    case_data = planning_results["case_data"]
+    model_results = planning_results["model_results"]
+    # print investment results
+    println(model_results["x"][r, :])
+end
+
 function print_planning_results(result_file::String)
     planning_results = JLD2.load(result_file)
     case_data = planning_results["case_data"]
