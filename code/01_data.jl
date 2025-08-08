@@ -137,7 +137,8 @@ function build_data_plan(;
     Cs::Union{Float64, Nothing} = 150.,
     load_shedding::Bool = true,
     new_backup::Bool = true,
-    new_storage::Bool = true
+    new_storage::Bool = true,
+    free_storage::Bool = false,
     )
     # - planning horizon
     N = 2025:2050
@@ -159,7 +160,7 @@ function build_data_plan(;
     I = Dict(r => (r == "g" ? (1:2) : (1:1)) for r in R)
     # date-independent parameters
     pb = file_data["backup electricity price (\$/MWh)"]
-    pℓ = file_data["value of lost load (\$/MWh)"]
+    pℓ = load_shedding ? file_data["value of lost load (\$/MWh)"] : zeros(length(N))
     discount_rate = file_data["discount rate (-)"]
     # - existing capacity
     x0 = Containers.@container([r in R, n in N, i in I[r]], 
@@ -185,7 +186,7 @@ function build_data_plan(;
         elseif r == "g"
             file_data["grid capital cost (\$/MW)"][n̲(n, first(N))]
         else
-            file_data["storage capital cost (\$/MW)"][n̲(n, first(N))]
+            free_storage ? 1000 : file_data["storage capital cost (\$/MW)"][n̲(n, first(N))]
         end
     )
     c0 = Containers.@container([r in R, n in N], 0)
