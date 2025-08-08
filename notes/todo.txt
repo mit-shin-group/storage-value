@@ -387,4 +387,30 @@ ewbackup_true_newstorage_true_freestorage_false.jld
 
 sh code/07_run_plan.sh --dates year --market no_exports --cycles 150 --shed false --backup false --mipgap 0.00001 --free_storage true
 
+----------
+8 August 25
+
+add time limit? or relax optimality gap, run took almost four hours
+
+mention lower operating cost in contingency thanks to slightly lower arbitrage costs
+
+question: why is installed capacity so high?
+
+is it because of the optimality gap? -- can't be, the optimality gap is $5000, the extra storage investment is about 300k.
+
+is it because of contingency operating cost savings thanks to a larger battery? Yes, they amount to 6 million.
+
+analyze peak-load days under different investment cost scenarios
+
+200MW terminal capacity is 1600MWh, max storage supply is 32MW, why not 20MW?, still that gives 50h of storage.
+
+Is there any kind of seasonal storage going on? --> Indeed, operating period was 1 instead of 365.
+
+--> That was the issue. Now terminal capacity under peak_shaving is 20.4MW.
+
+Next: compare low_cost storage and peak_shaving with normal cost to better understand how the market participation constraint Would incentivize larger storage: probably related to order of charging, can be tested by plotting peak load curve and comparing to available capacity.
+
+----------
+To do: add EU legislation
+
 ::::::::: Benders --> may not be necessary
