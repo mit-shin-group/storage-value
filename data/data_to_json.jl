@@ -1,14 +1,14 @@
 using JSON3
 
 # for investment costs
-consumer_price_index = Dict("2025" => 321.465, "2022" => 292.655, "2020" => 258.811, "2019" => 255.657, "2018" => 251.107) # https://www.rateinflation.com/consumer-price-index/usa-historical-cpi/
+consumer_price_index = Dict("2025" => 323.048, "2022" => 292.655, "2020" => 258.811, "2019" => 255.657, "2018" => 251.107) # https://www.rateinflation.com/consumer-price-index/usa-historical-cpi/
 
 # --------------------------
 # specify data and functions to construct the data dictionary
 N = 2025:2050
 r = 0.0  # - discount rate (-), PNNL assumed 0.0685
 storage_duration = 8
-battery_costs_per_MW = 1000 * storage_duration * [966.22307225, 936.33988445, 903.966431, 874.0832432, 841.70978974, 811.82660194, 799.37527369, 786.92394544, 774.47261719, 762.02128894, 749.56996069, 737.11863244, 724.66730419, 712.21597594, 699.76464769, 687.31331944, 674.86199119, 662.41066293, 649.95933468, 637.50800643, 625.05667818, 612.60534993, 600.15402168, 587.70269343, 575.25136518, 562.80003693] # see notebooks/nrel_battery_costs.ipynb for details
+battery_costs_per_MW = 1000 * storage_duration * [813.32630135, 780.38785301, 762.65176544, 742.38195108, 724.64586351, 706.90977594, 689.17368837, 671.4376008, 651.16778644, 633.43169887, 615.6956113 , 605.56070412, 592.89207014, 582.75716296, 572.62225578, 559.9536218, 549.81871462, 539.68380744, 529.54890026, 516.88026628, 506.7453591 , 496.61045192, 483.94181794, 473.80691076, 463.67200357, 451.0033696] # see notebooks/nrel_battery_costs.ipynb for details
 peak_load_day_2024 = [39.051, 39.051, 35.968, 33.913, 32.885, 32.885, 32.885, 36.996, 42.134, 46.245, 47.273, 48.300, 50.356, 51.383, 52.411, 54.466, 55.494, 58.577, 58.577, 56.522, 54.466, 52.411, 49.328, 46.245]
 peak_load_evolution = [
     62.455,
@@ -83,8 +83,8 @@ data = Dict(
     "storage min. investment (MW)" => 2,
     "storage max. investment (MW)" => 24.,
     "storage duration (h)" => storage_duration,
-    "storage charging efficiency (-)" => 0.92,
-    "storage discharging efficiency (-)" => 0.92,
+    "storage charging efficiency (-)" => 0.913,
+    "storage discharging efficiency (-)" => 0.913,
     "grid lifetime (years)" => grid_lifetime,
     "grid min. investment (MW)" => 40.,
     "grid max. investment (MW)" => 40.,
