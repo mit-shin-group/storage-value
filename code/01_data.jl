@@ -331,7 +331,7 @@ function build_data_plan(;
         R = R, I = I, D = D, N = N, K = K, J = J, C = C, Nr = Nr, T = T,
         p = p, c0 = c0, ps = ps, pd = pd, x0 = x0, x̲ = x̲, x̄ = x̄,
         ȳℓ = ȳℓ, Δt = Δt, ηc = ηc, ηd = ηd, Ts = Ts, Cs = Cs,
-        market = market, r = discount_rate, grb_silent = grb_silent, grb_mipgap = grb_mipgap, grb_timelimit = grb_timelimit, load_shedding = load_shedding, experiment = experiments
+        market = market, r = discount_rate, grb_silent = grb_silent, grb_mipgap = grb_mipgap, grb_timelimit = grb_timelimit, load_shedding = load_shedding, experiment = experiment
     )
 end
 

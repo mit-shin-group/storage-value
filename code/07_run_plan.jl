@@ -24,7 +24,7 @@ function parse_commandline()
             help="Max. yearly battery cycles"
         "--timelimit", "-t"
             arg_type=Float64
-            default=41400.
+            default=14400.
             help="Time limit for Gurobi solver in seconds"
         "--load_shedding", "-l"
             arg_type=Bool
