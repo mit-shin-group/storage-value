@@ -87,6 +87,8 @@ end
     grb_silent::Bool
     grb_mipgap::Float64
     grb_timelimit::Union{Nothing, Float64} = nothing
+    # Experiment tracking
+    experiment::Union{Nothing, String} = nothing
 end
 
 @with_kw struct CaseDataOps
