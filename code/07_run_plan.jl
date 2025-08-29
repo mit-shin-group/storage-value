@@ -50,6 +50,10 @@ function parse_commandline()
             arg_type=Float64
             default=0.001
             help="MIP gap for Gurobi (default: 0.001)"
+        "--experiment"
+            arg_type=Union{Nothing, String},
+            default = nothing
+            help="Experiment number (default nothing)"
     end
     return parse_args(s)
 end
@@ -69,8 +73,9 @@ function main()
     new_storage = args["new_storage"]
     free_storage = args["free_storage"]
     grb_mipgap = args["mip_gap"]
+    experiment = args["experiment"]
     # run julia script
-    save_planning_results(run_model(build_data_plan(date = date, stride = stride, market = market, Cs = Cs, grb_silent = false, grb_mipgap = grb_mipgap, grb_timelimit = timelimit, load_shedding = load_shedding, backup = backup, new_backup = new_backup, new_storage = new_storage, free_storage = free_storage)))
+    save_planning_results(run_model(build_data_plan(date = date, stride = stride, market = market, Cs = Cs, grb_silent = false, grb_mipgap = grb_mipgap, grb_timelimit = timelimit, load_shedding = load_shedding, backup = backup, new_backup = new_backup, new_storage = new_storage, free_storage = free_storage, experiment = experiment)))
 end
 
 main()

@@ -14,6 +14,7 @@ NEW_BACKUP=true
 MIPGAP=0.001
 NEW_STORAGE=true
 FREE_STORAGE=false
+EXPERIMENT=nothing
 
 # Get runtime arguments
 while [[ "$#" -gt 0 ]]; do
@@ -28,13 +29,17 @@ while [[ "$#" -gt 0 ]]; do
         --new_storage) NEW_STORAGE="$2"; shift ;;
         --free_storage) FREE_STORAGE="$2"; shift ;;
 	    --mipgap) MIPGAP="$2"; shift ;;
+        --experiment) EXPERIMENT="$2"; shift ;;
 	*) echo "Unknown parameter: $1"; exit 1 ;;
     esac
     shift
 done
 
 # Set log file
-LOGFILE=results/planning/${DATES}_${MARKET}_${CYCLES}_${SHED}_${STRIDE}_${BACKUP}_${NEW_BACKUP}_${NEW_STORAGE}_${FREE_STORAGE}.log
+case $EXPERIMENT in
+    nothing) LOGFILE=results/planning/${DATES}_${MARKET}_${CYCLES}_${SHED}_${STRIDE}_${BACKUP}_${NEW_BACKUP}_${NEW_STORAGE}_${FREE_STORAGE}.log ;;
+    *) LOGFILE=results/experiments/${EXPERIMENT}.log
+esac
 
 # Run your application
-julia +1.11.2 --project=. "code/07_run_plan.jl" -d $DATES -m $MARKET -c $CYCLES -l $SHED -s $STRIDE -b $BACKUP --new_backup $NEW_BACKUP --new_storage $NEW_STORAGE --free_storage $FREE_STORAGE -g $MIPGAP >> $LOGFILE 2>&1
+julia +1.11.2 --project=. "code/07_run_plan.jl" -d $DATES -m $MARKET -c $CYCLES -l $SHED -s $STRIDE -b $BACKUP --new_backup $NEW_BACKUP --new_storage $NEW_STORAGE --free_storage $FREE_STORAGE -g $MIPGAP --experiment $EXPERIMENT >> $LOGFILE 2>&1

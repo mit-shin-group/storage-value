@@ -186,7 +186,7 @@ function build_data_plan(;
         elseif r == "g"
             file_data["grid capital cost (\$/MW)"][n̲(n, first(N))]
         else
-            free_storage ? 1000 : file_data["storage capital cost (\$/MW)"][n̲(n, first(N))]
+            free_storage ? 8000 : file_data["storage capital cost (\$/MW)"][n̲(n, first(N))]
         end
     )
     c0 = Containers.@container([r in R, n in N], 0)
