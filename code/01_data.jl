@@ -141,7 +141,7 @@ function build_data_plan(;
     new_backup::Bool = true,
     new_storage::Bool = true,
     free_storage::Bool = false,
-    experiment::Union{Float64, Nothing} = nothing
+    experiment::Union{String, Nothing} = nothing
     )
     # - planning horizon
     N = 2025:2050
