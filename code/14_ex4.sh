@@ -1,0 +1,1 @@
+sbatch code/07_run_plan.sh --dates all --market peak_shaving --cycles 150. --shed false --stride 1 --backup false --mipgap 0.00001 --new_storage true --free_storage true --experiment 4
