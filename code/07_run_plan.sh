@@ -38,7 +38,7 @@ done
 # Set log file
 case $EXPERIMENT in
     nothing) LOGFILE=results/planning/${DATES}_${MARKET}_${CYCLES}_${SHED}_${STRIDE}_${BACKUP}_${NEW_BACKUP}_${NEW_STORAGE}_${FREE_STORAGE}.log ;;
-    *) LOGFILE=results/experiments/${EXPERIMENT}.log
+    *) LOGFILE=results/experiments/${EXPERIMENT}.log ;;
 esac
 
 # Run your application
