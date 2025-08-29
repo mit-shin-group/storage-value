@@ -1,0 +1,1 @@
+sbatch code/07_run_plan.sh --dates all --market full --cycles 150. --shed false --stride 1 --backup false --mipgap 0.1 --new_storage false --free_storage false --experiment 1
