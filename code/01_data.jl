@@ -132,13 +132,14 @@ function build_data_plan(;
     market::Market = full,
     backup::Bool = true,
     grb_silent::Bool = true,
-    grb_mipgap::Float64 = 0.001,
+    grb_mipgap::Float64 = 1e-5,
     grb_timelimit::Union{Float64, Nothing} = nothing,
     Cs::Union{Float64, Nothing} = 150.,
     load_shedding::Bool = true,
     new_backup::Bool = true,
     new_storage::Bool = true,
     free_storage::Bool = false,
+    experiment::Union{Float64, Nothing} = nothing
     )
     # - planning horizon
     N = 2025:2050
@@ -330,7 +331,7 @@ function build_data_plan(;
         R = R, I = I, D = D, N = N, K = K, J = J, C = C, Nr = Nr, T = T,
         p = p, c0 = c0, ps = ps, pd = pd, x0 = x0, x̲ = x̲, x̄ = x̄,
         ȳℓ = ȳℓ, Δt = Δt, ηc = ηc, ηd = ηd, Ts = Ts, Cs = Cs,
-        market = market, r = discount_rate, grb_silent = grb_silent, grb_mipgap = grb_mipgap, grb_timelimit = grb_timelimit, load_shedding = load_shedding
+        market = market, r = discount_rate, grb_silent = grb_silent, grb_mipgap = grb_mipgap, grb_timelimit = grb_timelimit, load_shedding = load_shedding, experiment = experiments
     )
 end
 
