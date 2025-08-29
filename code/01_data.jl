@@ -312,7 +312,7 @@ function build_data_plan(;
             if r == "g"
                 pg_dict[(d,k)] * (1 - discount_rate)^(n - first(N))
             elseif r == "ℓ"
-                pℓ[n̲(n, first(N))]
+                load_shedding ? pℓ[n̲(n, first(N))] : 0.
             else
                 0.
             end
