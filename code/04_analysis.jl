@@ -24,7 +24,7 @@ function save_planning_results(model_data::Tuple{Model, CaseDataPlan})
     if case_data.experiment == nothing
         filename = "results/planning/" * string(length(case_data.K)) * string(case_data.market) * string(isnothing(case_data.Cs) ? "_nocyclelimit" : Int(case_data.Cs)) * "_shedding_" * string(case_data.load_shedding) * "_" * string(isnothing(case_data.J) ? "no" : length(case_data.J)) * "J_backup_" * string("b" in case_data.R) * "_newbackup_" * string(case_data.x̄["b"] != 0.0) * "_newstorage_" * string(case_data.x̄["s"] != 0.0) * "_freestorage_" * string(mean(case_data.p["s", :]) <= 10000) * ".jld"
     else
-        filename = "results/experiments/" * experiment * ".jld" 
+        filename = "results/experiments/" * case_data.experiment * ".jld" 
     end
     @save filename model_results case_data
 end
