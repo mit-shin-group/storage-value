@@ -57,7 +57,7 @@ end
     # - initial resources
     # Investment costs
     p::Containers.DenseAxisArray{}
-    c0::Containers.DenseAxisArray{}
+    p0::Containers.DenseAxisArray{}
     # Operating costs
     ps::Containers.DenseAxisArray{}
     pd::Containers.DenseAxisArray{}
@@ -192,7 +192,7 @@ function build_data_plan(;
             free_storage ? 8000 : file_data["storage capital cost (\$/MW)"][n̲(n, first(N))]
         end
     )
-    c0 = Containers.@container([r in R, n in N], 0)
+    p0 = Containers.@container([r in R, n in N], 0)
     # - investment lifetime
     Nr = Dict("b" => file_data["backup lifetime (years)"], 
             "g" => file_data["grid lifetime (years)"], 
@@ -331,7 +331,7 @@ function build_data_plan(;
     # fill case_data
     return CaseDataPlan(
         R = R, I = I, D = D, N = N, K = K, J = J, C = C, Nr = Nr, T = T,
-        p = p, c0 = c0, ps = ps, pd = pd, x0 = x0, x̲ = x̲, x̄ = x̄,
+        p = p, p0 = p0, ps = ps, pd = pd, x0 = x0, x̲ = x̲, x̄ = x̄,
         ȳℓ = ȳℓ, Δt = Δt, ηc = ηc, ηd = ηd, Ts = Ts, Cs = Cs,
         market = market, r = discount_rate, grb_silent = grb_silent, grb_mipgap = grb_mipgap, grb_timelimit = grb_timelimit, load_shedding = load_shedding, experiment = experiment
     )
