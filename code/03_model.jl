@@ -131,6 +131,9 @@ function build_model(case_data::CaseDataPlan; env::Gurobi.Env = Gurobi.Env())
             # - discharge limit
             if !isnothing(Cs)
                 @constraint(model, [n in N, c in C], Δt * sum( sum(T[n,j,c] for c in C) * ys["s",n,j,k,c] for k in K for j in J)/ηd <= Cs * Ts * xtot["s", n, 0])
+            # daily cycle limit
+            elseif Cs == 1000.
+                @constraint(model, [n in N, j in J, c in C], Δt * sum( sum(T[n,j,c] for c in C) * ys["s",n,j,k,c] for k in K)/ηd <= 150/365 * Ts * xtot["s", n, 0])
             end
         end
         # - market participation
