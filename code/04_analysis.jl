@@ -76,13 +76,17 @@ function print_experiments(result_file::String)
     # total capital
     println(sum(case_data.p[r,n] * model_results["x"][r,n] + case_data.p0[r,n] * model_results["z"][r,n] for n in case_data.N for r in case_data.R)/1e6)
     # capital (grid, storage)
-    for r in ["g", "s"]
-        println(sum(case_data.p[r,n] * model_results["x"][r,n] + case_data.c0[r,n] * model_results["z"][r,n] for n in case_data.N)/1e6)
+    for r in ["b", "g", "s"]
+        if r in case_data.R
+            println(sum(case_data.p[r,n] * model_results["x"][r,n] + case_data.p0[r,n] * model_results["z"][r,n] for n in case_data.N)/1e6)
+        else
+            println(0.)
+        end
     end
     # --- Investment
     println()
     # terminal capacity
-    for r in ["g", "s"]
+    for r in ["b", "g", "s"]
         if r in case_data.R
             println(model_results["xtot"][r, end, 0])
         else
@@ -90,7 +94,7 @@ function print_experiments(result_file::String)
         end
     end
     # total investment (MW)
-    for r in ["g", "s"]
+    for r in ["b", "g", "s"]
         if r in case_data.R
             println(sum(model_results["x"][r, n] for n in case_data.N))
         else
@@ -110,14 +114,14 @@ function print_experiments(result_file::String)
         println(case_data.Δt * sum(max.(model_results["yd"]["g", :, :, :, c] .- model_results["ys"]["g", :, :, :, c], 0)) / 1e3 / length(case_data.N))
         # supply
         total_supply = 0
-         for r in ["g", "s"]
+         for r in ["b", "g", "s"]
             if r in case_data.R
                 r == "g" ? total_supply += case_data.Δt * sum(max.(model_results["ys"]["g", :, :, :, c] .- model_results["yd"]["g", :, :, :, c], 0)) / 1e3 / length(case_data.N) : 
                     total_supply += case_data.Δt * sum(model_results["ys"][r, :, :, :, c]) / 1e3 / length(case_data.N)
             end
         end
         println(total_supply)
-        for r in ["g", "s"]
+        for r in ["b", "g", "s"]
             if r in case_data.R
                 println(r == "g" ? case_data.Δt * sum(max.(model_results["ys"]["g", :, :, :, c] .- model_results["yd"]["g", :, :, :, c], 0)) / 1e3 / length(case_data.N) : 
                     case_data.Δt * sum(model_results["ys"][r, :, :, :, c]) / 1e3 / length(case_data.N))
@@ -218,7 +222,7 @@ function print_planning_results(result_file::String)
         end
     end
     # total capital cost
-    println(sum(case_data.p[r,n] * model_results["x"][r,n] + case_data.c0[r,n] * model_results["z"][r,n] for n in case_data.N for r in case_data.R))
+    println(sum(case_data.p[r,n] * model_results["x"][r,n] + case_data.p0[r,n] * model_results["z"][r,n] for n in case_data.N for r in case_data.R))
     # terminal capacity
     println()
     for r in ["b", "g", "s"]

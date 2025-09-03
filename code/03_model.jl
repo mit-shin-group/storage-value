@@ -130,10 +130,13 @@ function build_model(case_data::CaseDataPlan; env::Gurobi.Env = Gurobi.Env())
             @constraint(model, [n in N, j in J, c in C], ysoc[n, j, end, c] == y0[n])
             # - discharge limit
             if !isnothing(Cs)
-                @constraint(model, [n in N, c in C], Δt * sum( sum(T[n,j,c] for c in C) * ys["s",n,j,k,c] for k in K for j in J)/ηd <= Cs * Ts * xtot["s", n, 0])
-            # daily cycle limit
-            elseif Cs == 1000.
-                @constraint(model, [n in N, j in J, c in C], Δt * sum( sum(T[n,j,c] for c in C) * ys["s",n,j,k,c] for k in K)/ηd <= 150/365 * Ts * xtot["s", n, 0])
+                if Cs == 1000.
+                    # daily cycle limit
+                    @constraint(model, [n in N, j in J, c in C], Δt * sum( sum(T[n,j,c] for c in C) * ys["s",n,j,k,c] for k in K)/ηd <= 150/365 * Ts * xtot["s", n, 0])
+                else
+                    # yearly cycle limit
+                    @constraint(model, [n in N, c in C], Δt * sum( sum(T[n,j,c] for c in C) * ys["s",n,j,k,c] for k in K for j in J)/ηd <= Cs * Ts * xtot["s", n, 0])
+                end
             end
         end
         # - market participation
