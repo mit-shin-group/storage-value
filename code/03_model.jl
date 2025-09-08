@@ -3,6 +3,9 @@ include("01_data.jl")
 include("02_peak_shaving_potential.jl")
 
 function build_model(case_data::CaseDataPlan; env::Gurobi.Env = Gurobi.Env())
+    result_file = "results/experiments/8.jld"
+    experiment_results = JLD2.load(result_file)
+    model_results = experiment_results["model_results"]
     # this function requires ["g"] in R and ["ℓ"] in D
     # unpack important data
     @unpack R, D, N, K, J, C, x̲, x̄, x0, I, Nr, ȳℓ, Δt, ηc, ηd, Ts, p, ps, pd, p0, T, market, Cs, load_shedding = case_data
@@ -10,17 +13,17 @@ function build_model(case_data::CaseDataPlan; env::Gurobi.Env = Gurobi.Env())
     model = Model(() -> Gurobi.Optimizer(env))
     # Decision variables
     # - investment decisions
-    @variable(model, x[r in R, n in N] >= 0)
-    @variable(model, xtot[r in R, n in N, c in C] >= 0)
-    @variable(model, xmax[n in N] >= 0)
-    @variable(model, z[r in R, n in N], Bin)
+    @variable(model, x[r in R, n in N] >= 0, start = model_results["x"][r, n])
+    @variable(model, xtot[r in R, n in N, c in C] >= 0, start = model_results["xtot"][r, n, c])
+    @variable(model, xmax[n in N] >= 0, start = model_results["xmax"][n])
+    @variable(model, z[r in R, n in N], Bin, start = model_results["z"][r, n])
     # - operating decisions
     if isnothing(J)
         @variable(model, ys[r in R, n in N, k in K, c in C] >= 0)
         @variable(model, yd[r in D, n in N, k in K, c in C] >= 0)
     else
-        @variable(model, ys[r in R, n in N, j in J, k in K, c in C] >= 0)
-        @variable(model, yd[r in D, n in N, j in J, k in K, c in C] >= 0)
+        @variable(model, ys[r in R, n in N, j in J, k in K, c in C] >= 0, start = model_results["ys"][r, n, j, k, c])
+        @variable(model, yd[r in D, n in N, j in J, k in K, c in C] >= 0, start = model_results["yd"][r, n, j, k, c])
     end
     
     # constraints
@@ -37,7 +40,7 @@ function build_model(case_data::CaseDataPlan; env::Gurobi.Env = Gurobi.Env())
     # -- operational decisions
     if "s" in R
         # - initial state of charge 
-        @variable(model, y0[n in N] >= 0)
+        @variable(model, y0[n in N] >= 0, start = model_results["y0"][n])
         @constraint(model, [n in N], y0[n] <= Ts * xtot["s", n, 0])
     end
     if isnothing(J)
@@ -121,7 +124,7 @@ function build_model(case_data::CaseDataPlan; env::Gurobi.Env = Gurobi.Env())
         # - storage
         if "s" in R
             # - evolving state of charge
-            @variable(model, ysoc[n in N, j in J, k in K, c in C] >= 0)
+            @variable(model, ysoc[n in N, j in J, k in K, c in C] >= 0, start = model_results["ysoc"][n, j, k, c])
             @constraint(model, [n in N, c in C], ysoc[n, :, :, c] .<= Ts * xtot["s", n, 0])
             # - state-of-charge evolution
             @constraint(model, [n in N, j in J, c in C], ysoc[n,j,1,c] == y0[n] + Δt * (ηc * yd["s", n, j, 1, c] - ys["s", n, j, 1, c] / ηd)) 
@@ -170,6 +173,8 @@ function build_model(case_data::CaseDataPlan; env::Gurobi.Env = Gurobi.Env())
         - sum(pd[r,n,j,k] * yd[r,n,j,k,c] for r in D) for k in K) for j in J for c in C) 
         for n in N))
     end
+    UB = model_results["objective_value"] + 1
+    set_optimizer_attribute(model, "Cutoff", UB)
     # Return result
     return model
 end
@@ -245,6 +250,7 @@ function run_model(case_data::Union{CaseDataPlan, CaseDataOps}; env::Gurobi.Env 
         set_silent(model)
         set_optimizer_attribute(model, "OutputFlag", 0)
     end
+    # Known upper bound (objective of feasible solution)
     set_optimizer_attribute(model, "MIPGap", case_data.grb_mipgap)
     if !isnothing(case_data.grb_timelimit)
         set_optimizer_attribute(model, "TimeLimit", case_data.grb_timelimit)
