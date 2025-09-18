@@ -37,6 +37,39 @@ function print_investment(result_file::String, r::String)
     println(model_results["x"][r, :])
 end
 
+function print_discharge_ratio(experiment::String; scarcity_events = [(date="Aug-01", hour=18), (date="Aug-01", hour=19), (date="Aug-01", hour=20), (date="Jun-18", hour=18), (date="Jun-18", hour=19)])
+    result_file = "results/experiments/" * experiment * ".jld"
+    experiment_results = JLD2.load(result_file)
+    case_data = experiment_results["case_data"]
+    model_results = experiment_results["model_results"]
+    function print_discharge_duration_date(scarcity_date::String)
+        min_ratio = ones(length(case_data.K), length(case_data.C))
+        for n in case_data.N, c in case_data.C
+            # safeguard for division by 0
+            min_ratio = min.(min_ratio, model_results["ys"]["s", n, scarcity_date, :, :] / max(model_results["xtot"]["s", n, 0], case_data.x̲["s"]))
+        end
+        println("Discharge ratio for scarcity date: " * scarcity_date)
+        println("Base case:")
+        println(min_ratio[:,0])
+        println("Contingency case:")
+        println(min_ratio[:,1])
+    end
+    for scarcity_date in ["Jun-18", "Aug-01"]
+        print_discharge_duration_date(scarcity_date)
+    end
+end
+
+function print_min_discharge_ratio(case_data::CaseDataPlan, model_results, r::String, c::Int; scarcity_events = [(date="Aug-01", hour=18), (date="Aug-01", hour=19), (date="Aug-01", hour=20), (date="Jun-18", hour=18), (date="Jun-18", hour=19)])
+    min_ratio = 1
+    for event in scarcity_events, n in case_data.N
+        # take max to avoid division by zero
+        if model_results["xtot"][r, n, 0] > 0
+            min_ratio = min(min_ratio, model_results["ys"][r, n, event.date, event.hour, c] / model_results["xtot"][r, n, 0])
+        end
+    end
+    println(min_ratio)
+end
+
 function print_experiments(result_file::String)
     experiment_results = JLD2.load(result_file)
     case_data = experiment_results["case_data"]
@@ -138,6 +171,17 @@ function print_experiments(result_file::String)
         println(mean(replace((case_data.Δt * sum(model_results["ys"]["s",:,j,k,c] for j in case_data.J, k in case_data.K)./(case_data.ηd * case_data.Ts * model_results["xtot"]["s", :, 0])).data, NaN => 0.0)))
         # max.
         println(maximum(replace((case_data.Δt * sum(model_results["ys"]["s",:,j,k,c] for j in case_data.J, k in case_data.K)./(case_data.ηd * case_data.Ts * model_results["xtot"]["s", :, 0])).data, NaN => 0.0)))
+    end
+        # --- Discharge ratio during scarcity events
+    println()
+    for c in case_data.C
+        for r in ["b", "s"]
+            if r in case_data.R
+                print_min_discharge_ratio(case_data, model_results, r, c)
+            else
+                println(0.)
+            end
+        end
     end
 end
 
