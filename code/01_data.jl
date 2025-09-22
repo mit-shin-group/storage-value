@@ -61,6 +61,8 @@ end
     # Operating costs
     ps::Containers.DenseAxisArray{}
     pd::Containers.DenseAxisArray{}
+    # Capacity price
+    pcap::Containers.DenseAxisArray{}
     # Initial capacities
     x0::Containers.SparseAxisArray{}
     # Investment ranges
@@ -141,7 +143,8 @@ function build_data_plan(;
     new_backup::Bool = true,
     new_storage::Bool = true,
     free_storage::Bool = false,
-    experiment::Union{String, Nothing} = nothing
+    experiment::Union{String, Nothing} = nothing,
+    capacity_payment::Bool = false
     )
     # - planning horizon
     N = 2025:2050
@@ -193,6 +196,14 @@ function build_data_plan(;
         end
     )
     p0 = Containers.@container([r in R, n in N], 0)
+    # - capacity prices (none for grid capacity)
+    pcap = Containers.@container([r in R, n in N],
+        if r == "g"
+            0
+        else
+            capacity_payment ? file_data["capacity price (\$/MW-year)"][n̲(n, first(N))] : 0
+        end
+    )
     # - investment lifetime
     Nr = Dict("b" => file_data["backup lifetime (years)"], 
             "g" => file_data["grid lifetime (years)"], 
@@ -332,7 +343,7 @@ function build_data_plan(;
     return CaseDataPlan(
         R = R, I = I, D = D, N = N, K = K, J = J, C = C, Nr = Nr, T = T,
         p = p, p0 = p0, ps = ps, pd = pd, x0 = x0, x̲ = x̲, x̄ = x̄,
-        ȳℓ = ȳℓ, Δt = Δt, ηc = ηc, ηd = ηd, Ts = Ts, Cs = Cs,
+        ȳℓ = ȳℓ, Δt = Δt, ηc = ηc, ηd = ηd, Ts = Ts, Cs = Cs, pcap = pcap,
         market = market, r = discount_rate, grb_silent = grb_silent, grb_mipgap = grb_mipgap, grb_timelimit = grb_timelimit, load_shedding = load_shedding, experiment = experiment
     )
 end

@@ -81,6 +81,8 @@ function print_experiments(result_file::String)
     println(case_data.R)
     # load shedding
     println(case_data.load_shedding)
+    # capacity payment
+    println(mean(case_data.pcap["s", :])/12/1000)
     # storage investment cost per MWh
     println(mean(case_data.p["s", :]) * case_data.Ts)
     # --- Solution quality
@@ -108,10 +110,19 @@ function print_experiments(result_file::String)
     end
     # total capital
     println(sum(case_data.p[r,n] * model_results["x"][r,n] + case_data.p0[r,n] * model_results["z"][r,n] for n in case_data.N for r in case_data.R)/1e6)
-    # capital (grid, storage)
+    # capital
     for r in ["b", "g", "s"]
         if r in case_data.R
             println(sum(case_data.p[r,n] * model_results["x"][r,n] + case_data.p0[r,n] * model_results["z"][r,n] for n in case_data.N)/1e6)
+        else
+            println(0.)
+        end
+    end
+    # total capacity payment
+    println(sum(case_data.pcap[r,n] * model_results["xtot"][r,n,0] for n in case_data.N for r in case_data.R)/1e6)
+    for r in ["b", "g", "s"]
+        if r in case_data.R
+            println(sum(case_data.pcap[r,n] * model_results["xtot"][r,n,0] for n in case_data.N)/1e6)
         else
             println(0.)
         end
@@ -136,24 +147,39 @@ function print_experiments(result_file::String)
     end
     # --- Operating
     println()
-    # load
-    if case_data.Δt * sum(model_results["yd"]["ℓ", :, :, :, 0]) == case_data.Δt * sum(model_results["yd"]["ℓ", :, :, :, 1])
-        println(case_data.Δt * sum(model_results["yd"]["ℓ", :, :, :, 0]) / 1e3 / length(case_data.N) )
-    else
-        println("Covered load differs between base case and contingency.")
-    end
+    # # load
+    # if case_data.Δt * sum(model_results["yd"]["ℓ", :, :, :, 0]) == case_data.Δt * sum(model_results["yd"]["ℓ", :, :, :, 1])
+    #     println(case_data.Δt * sum(model_results["yd"]["ℓ", :, :, :, 0]) / 1e3 / length(case_data.N) )
+    # else
+    #     println("Covered load differs between base case and contingency.")
+    # end
     for c in case_data.C
-        # demand grid
-        println(case_data.Δt * sum(max.(model_results["yd"]["g", :, :, :, c] .- model_results["ys"]["g", :, :, :, c], 0)) / 1e3 / length(case_data.N))
-        # supply
-        total_supply = 0
-         for r in ["b", "g", "s"]
-            if r in case_data.R
-                r == "g" ? total_supply += case_data.Δt * sum(max.(model_results["ys"]["g", :, :, :, c] .- model_results["yd"]["g", :, :, :, c], 0)) / 1e3 / length(case_data.N) : 
-                    total_supply += case_data.Δt * sum(model_results["ys"][r, :, :, :, c]) / 1e3 / length(case_data.N)
+        demand_wo_storage = 0
+        # demand
+        for r in ["g", "ℓ"]
+            if r in case_data.D
+                r == "g" ? demand_wo_storage += case_data.Δt * sum(max.(model_results["yd"]["g", :, :, :, c] .- model_results["ys"]["g", :, :, :, c], 0)) / 1e3 / length(case_data.N) : 
+                    demand_wo_storage += case_data.Δt * sum(model_results["yd"][r, :, :, :, c]) / 1e3 / length(case_data.N)
             end
         end
-        println(total_supply)
+        println(demand_wo_storage)
+        for r in ["g", "ℓ", "s"]
+            if r in case_data.D
+                println(r == "g" ? case_data.Δt * sum(max.(model_results["yd"]["g", :, :, :, c] .- model_results["ys"]["g", :, :, :, c], 0)) / 1e3 / length(case_data.N) : 
+                    case_data.Δt * sum(model_results["yd"][r, :, :, :, c]) / 1e3 / length(case_data.N))
+            else
+                println(0.)
+            end
+        end
+        # supply
+        supply_wo_storage = 0
+         for r in ["b", "g"]
+            if r in case_data.R
+                r == "g" ? supply_wo_storage += case_data.Δt * sum(max.(model_results["ys"]["g", :, :, :, c] .- model_results["yd"]["g", :, :, :, c], 0)) / 1e3 / length(case_data.N) : 
+                    supply_wo_storage += case_data.Δt * sum(model_results["ys"][r, :, :, :, c]) / 1e3 / length(case_data.N)
+            end
+        end
+        println(supply_wo_storage)
         for r in ["b", "g", "s"]
             if r in case_data.R
                 println(r == "g" ? case_data.Δt * sum(max.(model_results["ys"]["g", :, :, :, c] .- model_results["yd"]["g", :, :, :, c], 0)) / 1e3 / length(case_data.N) : 
@@ -162,9 +188,9 @@ function print_experiments(result_file::String)
                 println(0.)
             end
         end
+        println()
     end
     # --- Discharge cycles 
-    println()
     # storage supply cycles
     for c in case_data.C
         # avg.

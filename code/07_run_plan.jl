@@ -15,8 +15,8 @@ function parse_commandline()
             default=1
             help="Stride for daily operating problems"
         "--market", "-m"
-            arg_type = String
-            default = "full"
+            arg_type=String
+            default="full"
             help="Market participation: full, no_exports, limited_backup, or peak_shaving"
         "--cycles", "-c"
             arg_type=Float64
@@ -52,8 +52,12 @@ function parse_commandline()
             help="MIP gap for Gurobi (default: 0.001)"
         "--experiment"
             arg_type=String
-            default = nothing
-            help="Experiment number (default nothing)"
+            default=nothing
+            help="Experiment number (default: nothing)"
+        "--capacity_payment"
+            arg_type=Bool
+            default=false
+            help="Capacity payment (default: false)"
     end
     return parse_args(s)
 end
@@ -74,11 +78,12 @@ function main()
     free_storage = args["free_storage"]
     grb_mipgap = args["mipgap"]
     experiment = args["experiment"]
+    capacity_payment=args["capacity_payment"]
     if experiment == "nothing"
         experiment = nothing
     end
     # run julia script
-    save_planning_results(run_model(build_data_plan(date = date, stride = stride, market = market, Cs = Cs, grb_silent = false, grb_mipgap = grb_mipgap, grb_timelimit = timelimit, load_shedding = load_shedding, backup = backup, new_backup = new_backup, new_storage = new_storage, free_storage = free_storage, experiment = experiment)))
+    save_planning_results(run_model(build_data_plan(date = date, stride = stride, market = market, Cs = Cs, grb_silent = false, grb_mipgap = grb_mipgap, grb_timelimit = timelimit, load_shedding = load_shedding, backup = backup, new_backup = new_backup, new_storage = new_storage, free_storage = free_storage, experiment = experiment, capacity_payment = capacity_payment)))
 end
 
 main()

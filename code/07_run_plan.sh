@@ -16,6 +16,7 @@ NEW_STORAGE=true
 FREE_STORAGE=false
 EXPERIMENT=nothing
 TIMELIMIT=14400.
+CAPACITY_PAYMENT=false
 
 # Get runtime arguments
 while [[ "$#" -gt 0 ]]; do
@@ -32,6 +33,7 @@ while [[ "$#" -gt 0 ]]; do
 	    --mipgap) MIPGAP="$2"; shift ;;
         --experiment) EXPERIMENT="$2"; shift ;;
         --timelimit) TIMELIMIT="$2"; shift ;;
+        --capacity_payment) CAPACITY_PAYMENT="$2"; shift ;;
 	*) echo "Unknown parameter: $1"; exit 1 ;;
     esac
     shift
@@ -44,4 +46,4 @@ case $EXPERIMENT in
 esac
 
 # Run your application
-julia +1.11.2 --project=. "code/07_run_plan.jl" -d $DATES -m $MARKET -c $CYCLES -l $SHED -s $STRIDE -b $BACKUP --new_backup $NEW_BACKUP --new_storage $NEW_STORAGE --free_storage $FREE_STORAGE -g $MIPGAP --experiment $EXPERIMENT --timelimit $TIMELIMIT >> $LOGFILE 2>&1
+julia +1.11.2 --project=. "code/07_run_plan.jl" -d $DATES -m $MARKET -c $CYCLES -l $SHED -s $STRIDE -b $BACKUP --new_backup $NEW_BACKUP --new_storage $NEW_STORAGE --free_storage $FREE_STORAGE -g $MIPGAP --experiment $EXPERIMENT --timelimit $TIMELIMIT --capacity_payment $CAPACITY_PAYMENT >> $LOGFILE 2>&1

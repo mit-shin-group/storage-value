@@ -38,6 +38,66 @@ peak_load_evolution = [
     97.318,
     98.084,       
 ]
+
+# capacity payments, see https://www.iso-ne.com/markets-operations/markets/forward-capacity-market/, half-yearly resolution starting in 2025, forecast from mid 2028 on
+capacity_price =
+[
+3.980,
+2.639,
+2.639,
+2.590,
+2.590,
+3.580,
+3.580,
+3.064,
+3.064,
+3.064,
+3.064,
+3.064,
+3.064,
+3.064,
+3.064,
+3.064,
+3.064,
+3.064,
+3.064,
+3.064,
+3.064,
+3.064,
+3.064,
+3.064,
+3.064,
+3.064,
+3.064,
+3.064,
+3.064,
+3.064,
+3.064,
+3.064,
+3.064,
+3.064,
+3.064,
+3.064,
+3.064,
+3.064,
+3.064,
+3.064,
+3.064,
+3.064,
+3.064,
+3.064,
+3.064,
+3.064,
+3.064,
+3.064,
+3.064,
+3.064,
+3.064,
+3.064
+]
+# transform capacity prices into yearly resolution, they last from Jan through May (151 days excluding leap years) and from Jun through December (214 days excluding leap years), and transform from $/kW-month to $/MW-year
+capacity_price = 12 * 1000 * [151/365 * capacity_price[2 * i - 1] + 214/365 * capacity_price[2*i] for i in 1:length(capacity_price) ÷ 2]
+
 # diesel
 price_per_l = 4/3.785    # in $/liter, about $4 per gallon, see https://www.eia.gov/petroleum/gasdiesel/
 turbine_heat_rate = 10.4 # MJ/kWh at 90F, see https://s7d2.scene7.com/is/content/Caterpillar/CM20150703-52095-43744
@@ -96,7 +156,8 @@ data = Dict(
     "probability-adjusted peak load days (-)" => ones(26,2) .* [30 1],
     "discount rate (-)" => r,
     "peak load evolution (MW)" => peak_load_evolution,
-    "storage max. cycles per year (-)" => 150.
+    "storage max. cycles per year (-)" => 150.,
+    "capacity price (\$/MW-year)" => capacity_price
 )
 
 # write to JSON

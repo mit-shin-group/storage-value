@@ -5,7 +5,7 @@ include("02_peak_shaving_potential.jl")
 function build_model(case_data::CaseDataPlan; env::Gurobi.Env = Gurobi.Env())
     # this function requires ["g"] in R and ["ℓ"] in D
     # unpack important data
-    @unpack R, D, N, K, J, C, x̲, x̄, x0, I, Nr, ȳℓ, Δt, ηc, ηd, Ts, p, ps, pd, p0, T, market, Cs, load_shedding = case_data
+    @unpack R, D, N, K, J, C, x̲, x̄, x0, I, Nr, ȳℓ, Δt, ηc, ηd, Ts, p, pcap, ps, pd, p0, T, market, Cs, load_shedding = case_data
     # set Gurobi environment
     model = Model(() -> Gurobi.Optimizer(env))
     # Decision variables
@@ -160,12 +160,12 @@ function build_model(case_data::CaseDataPlan; env::Gurobi.Env = Gurobi.Env())
 
     # objective
     if isnothing(J)
-        @objective(model, Min, sum( sum( p[r,n] * x[r,n] + p0[r,n] * z[r,n] for r in R) 
+        @objective(model, Min, sum( sum( p[r,n] * x[r,n] + p0[r,n] * z[r,n] - pcap[r,n] * xtot[r,n,0] for r in R) 
         + sum( T[n,c] * sum( sum( ps[r,n,k] * ys[r,n,k,c] for r in R) 
         - sum(pd[r,n,k] * yd[r,n,k,c] for r in D) for k in K) for c in C) 
         for n in N))
     else
-        @objective(model, Min, sum( sum( p[r,n] * x[r,n] + p0[r,n] * z[r,n] for r in R) 
+        @objective(model, Min, sum( sum( p[r,n] * x[r,n] + p0[r,n] * z[r,n] - pcap[r,n] * xtot[r,n,0] for r in R) 
         + sum( T[n,j,c] * sum( sum( ps[r,n,j,k] * ys[r,n,j,k,c] for r in R) 
         - sum(pd[r,n,j,k] * yd[r,n,j,k,c] for r in D) for k in K) for j in J for c in C) 
         for n in N))
