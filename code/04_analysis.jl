@@ -1,4 +1,4 @@
-using JuMP, DataFrames, OffsetArrays, JLD2
+using JuMP, DataFrames, OffsetArrays, JLD2, Dates, CairoMakie
 
 include("01_data.jl")
 
@@ -69,6 +69,60 @@ function print_min_discharge_ratio(case_data::CaseDataPlan, model_results, r::St
     end
     println(min_ratio)
 end
+
+function return_ys_net(result_file::String; year::Int=2025)
+    experiment_results = JLD2.load(result_file)
+    model_results = experiment_results["model_results"]
+    model_results["ys"]["b", year, :, :, :] = model_results["ys"]["b", year, :, :, :]/model_results["xtot"]["b", year, 0]
+    model_results["ys"]["g", year, :, :, 0] = (model_results["ys"]["g", year, :, :, 0] .- model_results["yd"]["g", year, :, :, 0])/model_results["xtot"]["g", year, 0]
+    model_results["ys"]["g", year, :, :, 1] = (model_results["ys"]["g", year, :, :, 1] .- model_results["yd"]["g", year, :, :, 1])/model_results["xtot"]["g", year, 1]
+    model_results["ys"]["s", year, :, :, :] = (model_results["ys"]["s", year, :, :, :] .- model_results["yd"]["s", year, :, :, :])/model_results["xtot"]["s", year, 0]
+    return model_results["ys"][:,year,:,:,:]
+end
+
+function plot_experiment(; year::Int=2025)
+    ys_ps = return_ys_net("results/experiments/8.jld", year = year)
+    ys_mp = return_ys_net("results/experiments/9.jld", year = year)
+    months = Date(year, 1, 1):Month(1):Date(year, 12, 1)
+    xticks_pos = [dayofyear(m) for m in months]
+    xticks_lab = [Dates.format(m, "u") for m in months]
+    xticks_lab_empty = fill("", length(xticks_lab))
+
+    yticks_pos = [1,7,13,19,24]
+    yticks_lab = ["0:00","6:00","12:00","18:00","24:00"]
+    yticks_lab_empty = fill("", length(yticks_lab))
+
+    fig = Figure(size=(1200,1000))
+    # Shared color scale
+    vmin = -1
+    vmax = 1
+    colormap = :coolwarm
+    # Heatmaps
+    # ---- base operations
+    Label(fig[0, 1:3], "Base case", fontsize=14, font=:bold)
+    # -- no arbitrage
+    heatmap!(Axis(fig[1,1]; title = "Backup", titlefont=:regular, titlesize=14, yreversed=true, ylabel = "No market participation", xticks=(xticks_pos, xticks_lab_empty), yticks=(yticks_pos, yticks_lab)), Array(ys_ps["b", :, :, 0]); colormap=colormap, colorrange=(vmin,vmax))
+    heatmap!(Axis(fig[1,2]; title = "Grid", titlefont=:regular, titlesize=14, yreversed=true, xticks=(xticks_pos, xticks_lab_empty), yticks=(yticks_pos, yticks_lab_empty)), Array(ys_ps["g", :, :, 0]); colormap=colormap, colorrange=(vmin,vmax))
+    heatmap!(Axis(fig[1,3]; title = "Storage", titlefont=:regular, titlesize=14, yreversed=true, xticks=(xticks_pos, xticks_lab_empty), yticks=(yticks_pos, yticks_lab_empty)), Array(ys_ps["s", :, :, 0]); colormap=colormap, colorrange=(vmin,vmax)) 
+    # -- with arbitrage
+    heatmap!(Axis(fig[2,1]; yreversed=true, ylabel = "With market participation", xticks=(xticks_pos, xticks_lab), yticks=(yticks_pos, yticks_lab)), Array(ys_mp["b", :, :, 0]); colormap=colormap, colorrange=(vmin,vmax))
+    heatmap!(Axis(fig[2,2]; yreversed=true, xticks=(xticks_pos, xticks_lab), yticks=(yticks_pos, yticks_lab_empty)), Array(ys_mp["g", :, :, 0]); colormap=colormap, colorrange=(vmin,vmax))
+    heatmap!(Axis(fig[2,3]; yreversed=true, xticks=(xticks_pos, xticks_lab), yticks=(yticks_pos, yticks_lab_empty)), Array(ys_mp["s", :, :, 0]); colormap=colormap, colorrange=(vmin,vmax)) 
+    # ---- contingency operations
+    Label(fig[3, 1:3], "Contingency", fontsize=14, font=:bold)
+    # -- no arbitrage
+    heatmap!(Axis(fig[4,1]; yreversed=true, ylabel = "No market participation", xticks=(xticks_pos, xticks_lab_empty), yticks=(yticks_pos, yticks_lab)), Array(ys_ps["b", :, :, 1]); colormap=colormap, colorrange=(vmin,vmax))
+    heatmap!(Axis(fig[4,2]; yreversed=true, xticks=(xticks_pos, xticks_lab_empty), yticks=(yticks_pos, yticks_lab_empty)), Array(ys_ps["g", :, :, 1]); colormap=colormap, colorrange=(vmin,vmax))
+    heatmap!(Axis(fig[4,3]; yreversed=true, xticks=(xticks_pos, xticks_lab_empty), yticks=(yticks_pos, yticks_lab_empty)), Array(ys_ps["s", :, :, 1]); colormap=colormap, colorrange=(vmin,vmax)) 
+    # -- with arbitrage
+    heatmap!(Axis(fig[5,1]; yreversed=true, ylabel = "With market participation", xticks=(xticks_pos, xticks_lab), yticks=(yticks_pos, yticks_lab)), Array(ys_mp["b", :, :, 1]); colormap=colormap, colorrange=(vmin,vmax))
+    heatmap!(Axis(fig[5,2]; yreversed=true, xticks=(xticks_pos, xticks_lab), yticks=(yticks_pos, yticks_lab_empty)), Array(ys_mp["g", :, :, 1]); colormap=colormap, colorrange=(vmin,vmax))
+    hm = heatmap!(Axis(fig[5,3]; yreversed=true, xticks=(xticks_pos, xticks_lab), yticks=(yticks_pos, yticks_lab_empty)), Array(ys_mp["s", :, :, 1]); colormap=colormap, colorrange=(vmin,vmax)) 
+    # Shared colorbar below all three axes
+    Colorbar(fig[6, 1:3], hm, label="Normalized power generation (-)", vertical=false, flipaxis=false)
+    save("pics/heatmap.pdf", fig)
+end
+
 
 function print_experiments(result_file::String)
     experiment_results = JLD2.load(result_file)
