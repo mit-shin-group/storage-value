@@ -99,7 +99,7 @@ function plot_experiment(; year::Int=2025)
     colormap = :coolwarm
     # Heatmaps
     # ---- base operations
-    Label(fig[0, 1:3], "Base case", fontsize=14, font=:bold)
+    Label(fig[0, 1:3], "Base case", fontsize=16, font=:regular)
     # -- no arbitrage
     heatmap!(Axis(fig[1,1]; title = "Backup", titlefont=:regular, titlesize=14, yreversed=true, ylabel = "No market participation", xticks=(xticks_pos, xticks_lab_empty), yticks=(yticks_pos, yticks_lab)), Array(ys_ps["b", :, :, 0]); colormap=colormap, colorrange=(vmin,vmax))
     heatmap!(Axis(fig[1,2]; title = "Grid", titlefont=:regular, titlesize=14, yreversed=true, xticks=(xticks_pos, xticks_lab_empty), yticks=(yticks_pos, yticks_lab_empty)), Array(ys_ps["g", :, :, 0]); colormap=colormap, colorrange=(vmin,vmax))
@@ -109,7 +109,7 @@ function plot_experiment(; year::Int=2025)
     heatmap!(Axis(fig[2,2]; yreversed=true, xticks=(xticks_pos, xticks_lab), yticks=(yticks_pos, yticks_lab_empty)), Array(ys_mp["g", :, :, 0]); colormap=colormap, colorrange=(vmin,vmax))
     heatmap!(Axis(fig[2,3]; yreversed=true, xticks=(xticks_pos, xticks_lab), yticks=(yticks_pos, yticks_lab_empty)), Array(ys_mp["s", :, :, 0]); colormap=colormap, colorrange=(vmin,vmax)) 
     # ---- contingency operations
-    Label(fig[3, 1:3], "Contingency", fontsize=14, font=:bold)
+    Label(fig[3, 1:3], "Contingency", fontsize=16, font=:regular)
     # -- no arbitrage
     heatmap!(Axis(fig[4,1]; yreversed=true, ylabel = "No market participation", xticks=(xticks_pos, xticks_lab_empty), yticks=(yticks_pos, yticks_lab)), Array(ys_ps["b", :, :, 1]); colormap=colormap, colorrange=(vmin,vmax))
     heatmap!(Axis(fig[4,2]; yreversed=true, xticks=(xticks_pos, xticks_lab_empty), yticks=(yticks_pos, yticks_lab_empty)), Array(ys_ps["g", :, :, 1]); colormap=colormap, colorrange=(vmin,vmax))
