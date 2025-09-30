@@ -123,6 +123,34 @@ function plot_experiment(; year::Int=2025)
     save("pics/heatmap.pdf", fig)
 end
 
+function plot_storage(; year::Int=2025)
+    ys_ps = return_ys_net("results/experiments/8.jld", year = year)
+    ys_mp = return_ys_net("results/experiments/9.jld", year = year)
+    months = Date(year, 1, 1):Month(1):Date(year, 12, 1)
+    xticks_pos = [dayofyear(m) for m in months]
+    xticks_lab = [Dates.format(m, "u") for m in months]
+    xticks_lab_empty = fill("", length(xticks_lab))
+
+    yticks_pos = [1,7,13,19,24]
+    yticks_lab = ["0:00","6:00","12:00","18:00","24:00"]
+    yticks_lab_empty = fill("", length(yticks_lab))
+
+    fig = Figure(size=(1000,400))
+    # Shared color scale
+    vmin = -1
+    vmax = 1
+    colormap = :coolwarm
+    # Heatmaps
+    # ---- base operations
+    Label(fig[0, 1:2], "Storage utilization", fontsize=16, font=:regular)
+    # -- no arbitrage
+    heatmap!(Axis(fig[1,1]; title = "No market participation", titlefont=:regular, titlesize=14, yreversed=true, xticks=(xticks_pos, xticks_lab), yticks=(yticks_pos, yticks_lab)), Array(ys_ps["s", :, :, 1]); colormap=colormap, colorrange=(vmin,vmax))
+    # -- with arbitrage
+    hm = heatmap!(Axis(fig[1,2]; title = "With market participation", titlefont=:regular, titlesize=14, yreversed=true, xticks=(xticks_pos, xticks_lab), yticks=(yticks_pos, yticks_lab_empty)), Array(ys_mp["s", :, :, 1]); colormap=colormap, colorrange=(vmin,vmax)) 
+    # Shared colorbar below all three axes
+    Colorbar(fig[2, 1:2], hm, label="Normalized power supply (-)", vertical=false, flipaxis=false)
+    save("pics/heatmap_storage.pdf", fig)
+end
 
 function print_experiments(result_file::String)
     experiment_results = JLD2.load(result_file)
