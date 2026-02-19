@@ -37,6 +37,22 @@ function print_investment(result_file::String, r::String)
     println(model_results["x"][r, :])
 end
 
+function return_investment_experiment(experiment::String)
+    result_file = "results/experiments/" * experiment * ".jld"
+    experiment_results = JLD2.load(result_file)
+    case_data = experiment_results["case_data"]
+    model_results = experiment_results["model_results"]
+    return model_results["x"]
+end
+
+function investment_overview(; experiment_list = ["14", "8", "9", "19", "15", "11", "22", "20", "21"])
+    ov = Dict()
+    for i in 1:length(experiment_list)
+        ov[i] = return_investment_experiment(experiment_list[i])
+    end
+    return ov
+end
+
 function print_discharge_ratio(experiment::String; scarcity_events = [(date="Aug-01", hour=18), (date="Aug-01", hour=19), (date="Aug-01", hour=20), (date="Jun-18", hour=18), (date="Jun-18", hour=19)])
     result_file = "results/experiments/" * experiment * ".jld"
     experiment_results = JLD2.load(result_file)
