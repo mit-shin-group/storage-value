@@ -17,6 +17,21 @@ Jun -- May 2026: $2.639/kW-month
 Jun -- May 2027: $2.590/kW-month
 Jun -- May 2028: $3.580/kW-month
 
+Forecasts:
+not publicly available, but may be obtained from consultants:
+https://www.esaipower.com/products/capacity/
+
 Activations (https://www.iso-ne.com/isoexpress/web/reports/auctions/-/tree/fcm-hist-csc):
-2024-06-18: 17:50--18:20 (30min), reserve constraint pricing occurred between 17:10 and 19:45, average LMP went from $109/MWh to $758/MWh
+2024-06-18: 17:50--18:20 (30min), reserve constraint pricing occurred between 17:10 and 19:45, average LMP went from $109/MWh to $758/MWh (Slide 7)
 2024-08-01: 16:55--17:05, 17:45--18:40, 18:40--18:50, 18:50--19:20, 19:20--19:25 (110min), reserve constraint pricing between 16:50 and 22:25, average LMP went from $253/MWh during HE17 to $1,100/MWh during HE18, to $2,113 during HE19, $665/MWh during HE20
+
+assume full ELCC for backup generation as well
+
+Questions:
+-- Deliver at reduced price? ChatGPT: for capacity markets in general, and ISONE specifically?
+--> Renumerated at locational marginal price, possibly subject to performance adjustments (high penalties).
+--> Could in theory make extra money if they overperform, presupposes that not all capacity is bid into capacity markets. Maybe useful if ELCC < 1.
+-- Can demand/load participate in capacity markets?
+--> yes
+-- Can market participants "see" scarcity events ahead of time and align their day-ahead positions accordingly?
+--> Only through forecasts.
