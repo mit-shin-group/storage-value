@@ -95,44 +95,6 @@ end
     experiment::Union{Nothing, String} = nothing
 end
 
-# Data structure for the operations problem
-@with_kw struct CaseDataOps
-    # Index Sets
-    # - Supply resource types
-    R::Vector{String}
-    # - Demand resource types
-    D::Vector{String}
-    # - Operating periods
-    K::UnitRange{Int64}
-    T::Union{Nothing, Vector{Date}}
-    # Operating costs
-    ps::Containers.DenseAxisArray{}
-    pd::Containers.DenseAxisArray{}
-    # Load
-    ȳℓ::Containers.DenseAxisArray{}
-    # Time discretization (hours)
-    Δt::Float64
-    # Charging and discharging efficiencies
-    ηc::Float64
-    ηd::Float64
-    # Storage duration
-    Ts::Float64
-    # Max number of storage cycles per planning period
-    Cs::Union{Float64, Nothing}
-    # Market participation
-    market::Market
-    # Investment decisions
-    xtot::Containers.DenseAxisArray{}
-    # Initial state-of-charge (ratio)
-    y0::Union{Float64, Nothing}
-    # Allow for load schedding
-    load_shedding::Bool
-    # Gurobi parameters
-    grb_silent::Bool
-    grb_mipgap::Float64
-    grb_timelimit::Union{Nothing, Float64} = nothing
-end
-
 # Function to populate the data structure for the investment problem for the Nantucket case study
 function build_data_plan(; 
     date::String = "all", 
@@ -295,73 +257,5 @@ function build_data_plan(;
         p = p, p0 = p0, ps = ps, pd = pd, x0 = x0, x̲ = x̲, x̄ = x̄,
         ȳℓ = ȳℓ, Δt = Δt, ηc = ηc, ηd = ηd, Ts = Ts, Cs = Cs, pcap = pcap,
         market = market, r = discount_rate, grb_silent = grb_silent, grb_mipgap = grb_mipgap, grb_timelimit = grb_timelimit, load_shedding = load_shedding, experiment = experiment
-    )
-end
-
-function build_data_ops(; date::String = "all", 
-    market::Market = full,
-    xtot::Containers.DenseAxisArray=Containers.DenseAxisArray([12.921, 74.000, 6.000], ["b", "g", "s"]),
-    y0::Union{Nothing, Float64} = nothing,
-    load_shedding::Bool = true,
-    grb_silent::Bool = true,
-    grb_mipgap::Float64 = 0.001,
-    grb_timelimit::Union{Float64, Nothing} = nothing,
-    Cs::Union{Float64, Nothing} = 150.
-    )
-    # read general parameters
-    file_path = "data/nantucket.json"
-    file_data = read_data(file_path)
-    # read timeseries parameters
-    data_file = "data/Nantucket_2024.csv"
-    yearly_data = CSV.read(data_file, DataFrame)
-    # specify resources
-    R = ["b", "g", "s"]
-    D = ["g", "ℓ", "s"]
-    # date-independent parameters
-    pb = file_data["backup electricity price (\$/MWh)"][1]
-    pℓ = file_data["value of lost load (\$/MWh)"][1]
-    # - time discretization (hours)
-    Δt = file_data["time discretization (h)"]    
-    # - charging and discharging efficiencies
-    ηc = file_data["battery charging efficiency (-)"]
-    ηd = file_data["battery discharging efficiency (-)"]
-    # - storage duration
-    Ts = file_data["battery duration (h)"]
-    # - max number of storage cycles per planning period
-    Cs = Cs
-    # date-dependent parameters
-    if date == "all"
-        date_data = filter(row -> row.Day == Date(date, dateformat"yyyy-mm-dd"), yearly_data)
-        K = 1:nrow(date_data)
-        ȳℓ = Containers.@container([k in K], date_data[!, "MW Factor"][k])
-        pg = date_data[!, "Price"]
-        T = nothing
-    else
-        throw(ArgumentError("Invalid date parameter: $date"))
-    end
-    # overall operating costs
-    ps = Containers.@container([r in R, k in K], 
-        if r == "g"
-            pg[k]
-        elseif r == "b"
-            pb
-        else
-            0.
-        end
-    )
-    pd = Containers.@container([r in D, k in K], 
-        if r == "g"
-            pg[k]
-        elseif r == "ℓ"
-            pℓ
-        else
-            0.
-        end
-    )
-    return CaseDataOps(
-        R = R, D = D, K = K, T = T, ps = ps, pd = pd, ȳℓ = ȳℓ,
-        Δt = Δt, ηc = ηc, ηd = ηd, Ts = Ts, Cs = Cs,
-        market = market, xtot = xtot, y0 = y0,
-        load_shedding = load_shedding, grb_silent = grb_silent, grb_mipgap = grb_mipgap, grb_timelimit = grb_timelimit
     )
 end
