@@ -1,21 +1,20 @@
 using Parameters, JuMP, JSON3, Dates, Statistics, CSV, DataFrames
 
+# Auxiliary function
 function n̲(n, Nr; N = 1:25)
     return max(first(N), n - Nr + 1)
 end
 
 # Market participation types
-@enum Market full no_exports limited_backup peak_shaving 
+@enum Market full peak_shaving 
+# full: without market participation constraints
+# peak_shaving: with market participation constraints
 
-# Function to parse the market type from a string
+# Parse market type from a string
 function parse_market(x::AbstractString)
     lower_x = lowercase(x)
     if lower_x == "full"
         return full
-    elseif lower_x == "no_exports"
-        return no_exports
-    elseif lower_x == "limited_backup"
-        return limited_backup
     elseif lower_x == "peak_shaving"
         return peak_shaving
     else
@@ -23,6 +22,7 @@ function parse_market(x::AbstractString)
     end
 end
 
+# Read data from json files
 function read_data(file_path)
     open(file_path) do io
         data = JSON3.read(io)
@@ -30,10 +30,12 @@ function read_data(file_path)
     end
 end
 
+# Create strings for dates
 function daystring(d::Date)
     return string(Dates.monthname(d)[1:3], "-", lpad(day(d), 2, "0"))
 end
 
+# Data structure for the investment planning problem
 @with_kw struct CaseDataPlan
     # Index Sets
     # - Supply resource types
@@ -93,6 +95,7 @@ end
     experiment::Union{Nothing, String} = nothing
 end
 
+# Data structure for the operations problem
 @with_kw struct CaseDataOps
     # Index Sets
     # - Supply resource types
@@ -130,8 +133,9 @@ end
     grb_timelimit::Union{Nothing, Float64} = nothing
 end
 
+# Function to populate the data structure for the investment problem for the Nantucket case study
 function build_data_plan(; 
-    date::String = "peak", 
+    date::String = "all", 
     stride::Int = 1,
     market::Market = full,
     backup::Bool = true,
@@ -215,64 +219,8 @@ function build_data_plan(;
     ηd = file_data["storage discharging efficiency (-)"]
     # - storage duration
     Ts = file_data["storage duration (h)"]
-    # - max number of storage cycles per planning period
-    # Cs = Cs
     # date-dependent parameters
-    if date in ["peak", "year"]
-        if date == "peak"
-            # based on the N days with highest load in the reference year and on load growth projection
-            K = 1:24
-            N_days = 5
-            top_days = sort(combine(groupby(yearly_data, :Day), :"MW Factor" => maximum => :PeakLoad), :PeakLoad, rev=true)[1:N_days, :Day]
-            peak_day = combine(groupby(filter(row -> row.Day in top_days, yearly_data), :Hour), 
-            :"MW Factor" => maximum => :Load,
-            :"Price" => mean => :Price
-            )
-            # linear scaling for load evolution
-            ȳℓ = Containers.@container([n in N, k in K], peak_day[!, :Load][k] * file_data["peak load evolution (MW)"][n̲(n, first(N))]/maximum(peak_day[!, :Load]))
-            # price of grid electricity
-            pg = peak_day[!, :Price]
-            # probability-adjusted peak load days
-            T = Containers.@container([n in N, c in C],
-                if c == 0.
-                    (15:40)[n̲(n, first(N))]
-                else
-                    (0.2 * (15:40))[n̲(n, first(N))]
-                end
-            )   
-        elseif date == "year"
-            K = 1:nrow(yearly_data)
-            ȳℓ = Containers.@container([n in N, k in K], yearly_data[!, "MW Factor"][k] * file_data["peak load evolution (MW)"][n̲(n, first(N))]/maximum(yearly_data[!, "MW Factor"]))
-            pg = yearly_data[!, "Price"]
-            T = Containers.@container([n in N, c in C],
-                if c == 0.
-                    0.8
-                else
-                    0.2
-                end
-            )
-        end
-        # - overall operational prices
-        ps = Containers.@container([r in R, n in N, k in K], 
-            if r == "g"
-                pg[k] * (1 - discount_rate)^(n - first(N))
-            elseif r == "b"
-                pb[n̲(n, first(N))]
-            else
-                0.
-            end
-        )
-        pd = Containers.@container([r in D, n in N, k in K], 
-            if r == "g"
-                pg[k] * (1 - discount_rate)^(n - first(N))
-            elseif r == "ℓ"
-                pℓ[n̲(n, first(N))]
-            else
-                0.
-            end
-        )
-        J = nothing  # no operating superperiods for peak or year
-    elseif date == "all"
+    if date == "all"
         K = 1:24
         grouped_data = groupby(yearly_data, :Day)
         # Filter for complete days, then select every N-th group
@@ -337,6 +285,8 @@ function build_data_plan(;
                 end
         )
         J = day_labels  # operating superperiods are the days
+    else
+        throw(ArgumentError("Invalid date parameter: $date"))
     end
    
     # fill case_data
@@ -348,7 +298,7 @@ function build_data_plan(;
     )
 end
 
-function build_data_ops(; date::String = "peak", 
+function build_data_ops(; date::String = "all", 
     market::Market = full,
     xtot::Containers.DenseAxisArray=Containers.DenseAxisArray([12.921, 74.000, 6.000], ["b", "g", "s"]),
     y0::Union{Nothing, Float64} = nothing,
@@ -380,29 +330,14 @@ function build_data_ops(; date::String = "peak",
     # - max number of storage cycles per planning period
     Cs = Cs
     # date-dependent parameters
-    if date == "peak"
-        # based on the N days with highest load in that year, not on load growth projection
-        K = 1:24
-        N_days = 5
-        top_days = sort(combine(groupby(yearly_data, :Day), :"MW Factor" => maximum => :PeakLoad), :PeakLoad, rev=true)[1:N_days, :Day]
-        peak_day = combine(groupby(filter(row -> row.Day in top_days, yearly_data), :Hour), 
-        :"MW Factor" => maximum => :Load,
-        :"Price" => mean => :Price
-        )
-        ȳℓ = Containers.@container([k in K], peak_day[!, :Load][k])
-        pg = peak_day[!, :Price]
-        T = nothing
-    elseif date == "year"
-        K = 1:nrow(yearly_data)
-        ȳℓ = Containers.@container([k in K], yearly_data[!, "MW Factor"][k])
-        pg = yearly_data[!, "Price"]
-        T = yearly_data[!, "Day"]
-    else
+    if date == "all"
         date_data = filter(row -> row.Day == Date(date, dateformat"yyyy-mm-dd"), yearly_data)
         K = 1:nrow(date_data)
         ȳℓ = Containers.@container([k in K], date_data[!, "MW Factor"][k])
         pg = date_data[!, "Price"]
         T = nothing
+    else
+        throw(ArgumentError("Invalid date parameter: $date"))
     end
     # overall operating costs
     ps = Containers.@container([r in R, k in K], 
