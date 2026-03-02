@@ -84,7 +84,6 @@ function build_model(case_data::CaseDataPlan; env::Gurobi.Env = Gurobi.Env())
         # - market participation
         if market == peak_shaving
             # construct M
-            # x̄tot_s = compute_x̄tot_s(case_data)
             M̲1 = -maximum(ȳℓ) - 2*x̄["g"]
             M̲2 = -maximum(ȳℓ) .- 2*x̄["g"] .- ȳℓ
             M̅1 = compute_M̄1(case_data)
@@ -119,19 +118,6 @@ function run_model(case_data::CaseDataPlan; env::Gurobi.Env = Gurobi.Env())
     # set_optimizer(model, Gurobi.Optimizer)
     @time optimize!(model)
     return model, case_data
-end
-
-function compute_x̄tot_s(case_data::CaseDataPlan)
-    @unpack ȳℓ, Δt, ηc, ηd, Ts = case_data
-    # find planning period with maximum demand
-    n = argmax(Array(ȳℓ))[1]
-    # compute normalized potential
-    _, _, power, duration = compute_potential(ηc * ηd, Array(ȳℓ)[n, :], Δt = Δt)
-    # denormalize power and duration
-    power = power * mean(Array(ȳℓ)[n, :])
-    duration = duration * 12
-    # compute result
-    return max(1, duration/Ts)*power
 end
 
 function compute_xtot(x::Dict{Int64, Float64}, case_data::CaseDataPlan; r::String = "g")
