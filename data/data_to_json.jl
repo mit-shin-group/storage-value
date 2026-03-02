@@ -1,10 +1,9 @@
 using JSON3
 
-# for investment costs
-consumer_price_index = Dict("2025" => 323.048, "2022" => 292.655, "2020" => 258.811, "2019" => 255.657, "2018" => 251.107) # https://www.rateinflation.com/consumer-price-index/usa-historical-cpi/
-
 # --------------------------
 # specify data and functions to construct the data dictionary
+# for investment costs (https://www.rateinflation.com/consumer-price-index/usa-historical-cpi/)
+consumer_price_index = Dict("2025" => 323.048, "2022" => 292.655, "2020" => 258.811, "2019" => 255.657, "2018" => 251.107) 
 N = 2025:2050
 r = 0.0  # - discount rate (-), PNNL assumed 0.0685
 storage_duration = 8
@@ -37,7 +36,7 @@ peak_load_evolution = [
     96.744,
     97.318,
     98.084,       
-]
+] # National Grid Electric Sector Modernization Plan, p. 62, https://www.nationalgridus.com/media/pdfs/our-company/massachusetts-grid-modernization/future-grid-full-plan.pdf
 
 # capacity payments, see https://www.iso-ne.com/markets-operations/markets/forward-capacity-market/, half-yearly resolution starting in 2025, forecast from mid 2028 on
 capacity_price =
@@ -138,7 +137,7 @@ data = Dict(
     "storage capital cost (\$/MW)" => adjust_investment_cost(battery_costs_per_MW, storage_lifetime, r, true),
     "grid capital cost (\$/MW)" => 1e6 * adjust_investment_cost(5 * consumer_price_index["2025"]/consumer_price_index["2019"] * ones(26), grid_lifetime, r, true), # a 40MW line would have cost $200 million in 2019, see Nantucket press release
     "time discretization (h)" => 1.,
-    "value of lost load (\$/MWh)" => 9337 .* (1 - r).^(0:(length(N)-1)), # preliminary, could be refined with actual ISONE data
+    "value of lost load (\$/MWh)" => 9337 .* (1 - r).^(0:(length(N)-1)), # does not matter if load shedding is disallowed, none of our experiments allow for it
     "storage lifetime (years)" => storage_lifetime,
     "storage min. investment (MW)" => 2,
     "storage max. investment (MW)" => 24.,
