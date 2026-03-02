@@ -3,13 +3,13 @@ include("01_data.jl")
 include("02_peak_shaving_potential.jl")
 
 function build_model(case_data::CaseDataPlan; env::Gurobi.Env = Gurobi.Env())
+    # unpack important data
+    @unpack R, D, N, K, J, C, x̲, x̄, x0, I, Nr, ȳℓ, Δt, ηc, ηd, Ts, p, pcap, ps, pd, p0, T, market, Cs, load_shedding = case_data
     # test split into planning, operating, and suboperating periods
     if isnothing(J)
         throw(ArgumentError("Invalid parameter J cannot be nothing"))
     else
         # this function requires ["g"] in R and ["ℓ"] in D
-        # unpack important data
-        @unpack R, D, N, K, J, C, x̲, x̄, x0, I, Nr, ȳℓ, Δt, ηc, ηd, Ts, p, pcap, ps, pd, p0, T, market, Cs, load_shedding = case_data
         # set Gurobi environment
         model = Model(() -> Gurobi.Optimizer(env))
         # Decision variables
