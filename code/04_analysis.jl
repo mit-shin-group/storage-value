@@ -120,12 +120,12 @@ function print_experiments(experiment::String)
     println(case_data.market)
     # available resources
     println(case_data.R)
-    # load shedding
-    println(case_data.load_shedding)
-    # capacity payment
-    println(mean(case_data.pcap["s", :])/12/1000)
     # storage investment cost per MWh
     println(mean(case_data.p["s", :]) * case_data.Ts)
+    # max. battery cycles per year
+    println(case_data.Cs)
+    # capacity payment
+    println(mean(case_data.pcap["s", :])/12/1000)
     # --- Solution quality
     println()
     # total cost
@@ -134,8 +134,6 @@ function print_experiments(experiment::String)
     println(model_results["solve_time"])
     # maximum MIP gap
     println(100 * model_results["relative_gap"])
-    # complementarity violations 
-    println(sum((model_results["ys"]["s", :, :, :, :] .* model_results["yd"]["s", :, : , :, :]) .>= 1e-8)/length(model_results["yd"]["s", :, : , :, :]))
     # --- Costs
     println()
     # total operating
