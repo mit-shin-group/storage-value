@@ -4,7 +4,7 @@
 #SBATCH -N 1 -n 96 -p mit_normal --mem=370G
 
 # Set defaults
-DATES=peak
+DATES=all
 MARKET=full
 CYCLES=150.
 SHED=true
@@ -42,8 +42,8 @@ done
 # Set log file
 case $EXPERIMENT in
     nothing) LOGFILE=results/planning/${DATES}_${MARKET}_${CYCLES}_${SHED}_${STRIDE}_${BACKUP}_${NEW_BACKUP}_${NEW_STORAGE}_${FREE_STORAGE}.log ;;
-    *) LOGFILE=results/experiments/${EXPERIMENT}.log ;;
+    *) LOGFILE=results/experiments/ex${EXPERIMENT}.log ;;
 esac
 
 # Run your application
-julia +1.11.2 --project=. "code/07_run_plan.jl" -d $DATES -m $MARKET -c $CYCLES -l $SHED -s $STRIDE -b $BACKUP --new_backup $NEW_BACKUP --new_storage $NEW_STORAGE --free_storage $FREE_STORAGE -g $MIPGAP --experiment $EXPERIMENT --timelimit $TIMELIMIT --capacity_payment $CAPACITY_PAYMENT >> $LOGFILE 2>&1
+julia +1.11.2 --project=. "code/05_run_plan.jl" -d $DATES -m $MARKET -c $CYCLES -l $SHED -s $STRIDE -b $BACKUP --new_backup $NEW_BACKUP --new_storage $NEW_STORAGE --free_storage $FREE_STORAGE -g $MIPGAP --experiment $EXPERIMENT --timelimit $TIMELIMIT --capacity_payment $CAPACITY_PAYMENT >> $LOGFILE 2>&1

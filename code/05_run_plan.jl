@@ -8,8 +8,8 @@ function parse_commandline()
     @add_arg_table s begin
         "--dates", "-d"
             arg_type=String
-            default="peak"
-            help="Operational horizon: peak or year"
+            default="all"
+            help="Operational horizon: all"
         "--stride", "-s"
             arg_type=Int
             default=1
@@ -17,7 +17,7 @@ function parse_commandline()
         "--market", "-m"
             arg_type=String
             default="full"
-            help="Market participation: full, no_exports, limited_backup, or peak_shaving"
+            help="Market participation: full or peak_shaving"
         "--cycles", "-c"
             arg_type=Float64
             default=150.
