@@ -169,6 +169,7 @@ function print_experiments(experiment::String)
     # --- Investment
     println()
     # terminal capacity
+    println(sum(model_results["xtot"][r, end, 0] for r in case_data.R))
     for r in ["b", "g", "s"]
         if r in case_data.R
             println(model_results["xtot"][r, end, 0])
@@ -177,6 +178,7 @@ function print_experiments(experiment::String)
         end
     end
     # total investment (MW)
+    println(sum(model_results["x"][r, n] for n in case_data.N for r in case_data.R))
     for r in ["b", "g", "s"]
         if r in case_data.R
             println(sum(model_results["x"][r, n] for n in case_data.N))
