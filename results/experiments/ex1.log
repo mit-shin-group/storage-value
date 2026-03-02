@@ -1,0 +1,288 @@
+Set parameter WLSAccessID
+Set parameter WLSSecret
+Set parameter LicenseID to value 2677366
+Academic license 2677366 - for non-commercial use only - registered to la___@mit.edu
+Set parameter MIPGap to value 1e-05
+Set parameter TimeLimit to value 39600
+Set parameter MIPGap to value 1e-05
+Set parameter TimeLimit to value 39600
+Gurobi Optimizer version 12.0.2 build v12.0.2rc0 (linux64 - "Rocky Linux 8.10 (Green Obsidian)")
+
+CPU model: AMD EPYC 9474F 48-Core Processor, instruction set [SSE2|AVX|AVX2|AVX512]
+Thread count: 96 physical cores, 192 logical processors, using up to 32 threads
+
+Non-default parameters:
+TimeLimit  39600
+MIPGap  1e-05
+
+Academic license 2677366 - for non-commercial use only - registered to la___@mit.edu
+Optimize a model with 5941481 rows, 3644524 columns and 17805798 nonzeros
+Model fingerprint: 0xef2dc650
+Variable types: 3189004 continuous, 455520 integer (455520 binary)
+Coefficient statistics:
+  Matrix range     [3e-03, 1e+03]
+  Objective range  [2e-01, 7e+06]
+  Bounds range     [1e+00, 1e+02]
+  RHS range        [6e+00, 3e+02]
+
+Warning: Completing partial solution with 455520 unfixed non-continuous variables out of 455520
+User MIP start did not produce a new incumbent solution
+Processed MIP start in 1.96 seconds (2.44 work units)
+
+Presolve removed 4593339 rows and 2014607 columns
+Presolve time: 2.26s
+
+Explored 0 nodes (0 simplex iterations) in 8.28 seconds (12.12 work units)
+Thread count was 1 (of 192 available processors)
+
+Solution count 0
+
+Model is infeasible or unbounded
+Best objective -, best bound -, gap -
+
+User-callback calls 3688, time in user-callback 0.01 sec
+ERROR: LoadError: Result index of attribute MathOptInterface.VariablePrimal(1) out of bounds. There are currently 0 solution(s) in the model.
+Stacktrace:
+  [1] check_result_index_bounds
+    @ ~/.julia/packages/MathOptInterface/eRhCr/src/attributes.jl:207 [inlined]
+  [2] get(model::Gurobi.Optimizer, attr::MathOptInterface.VariablePrimal, x::MathOptInterface.VariableIndex)
+    @ Gurobi ~/.julia/packages/Gurobi/fnju1/src/MOI_wrapper/MOI_wrapper.jl:3059
+  [3] get(b::MathOptInterface.Bridges.LazyBridgeOptimizer{Gurobi.Optimizer}, attr::MathOptInterface.VariablePrimal, index::MathOptInterface.VariableIndex)
+    @ MathOptInterface.Bridges ~/.julia/packages/MathOptInterface/eRhCr/src/Bridges/bridge_optimizer.jl:1323
+  [4] get(model::MathOptInterface.Utilities.CachingOptimizer{MathOptInterface.Bridges.LazyBridgeOptimizer{Gurobi.Optimizer}, MathOptInterface.Utilities.UniversalFallback{MathOptInterface.Utilities.Model{Float64}}}, attr::MathOptInterface.VariablePrimal, index::MathOptInterface.VariableIndex)
+    @ MathOptInterface.Utilities ~/.julia/packages/MathOptInterface/eRhCr/src/Utilities/cachingoptimizer.jl:951
+  [5] _moi_get_result(::MathOptInterface.Utilities.CachingOptimizer{MathOptInterface.Bridges.LazyBridgeOptimizer{Gurobi.Optimizer}, MathOptInterface.Utilities.UniversalFallback{MathOptInterface.Utilities.Model{Float64}}}, ::MathOptInterface.VariablePrimal, ::Vararg{Any})
+    @ JuMP ~/.julia/packages/JuMP/i68GU/src/optimizer_interface.jl:1053
+  [6] get(model::Model, attr::MathOptInterface.VariablePrimal, v::VariableRef)
+    @ JuMP ~/.julia/packages/JuMP/i68GU/src/optimizer_interface.jl:1093
+  [7] value(v::VariableRef; result::Int64)
+    @ JuMP ~/.julia/packages/JuMP/i68GU/src/variables.jl:1904
+  [8] value
+    @ ~/.julia/packages/JuMP/i68GU/src/variables.jl:1903 [inlined]
+  [9] _broadcast_getindex_evalf
+    @ ./broadcast.jl:673 [inlined]
+ [10] _broadcast_getindex
+    @ ./broadcast.jl:646 [inlined]
+ [11] getindex
+    @ ./broadcast.jl:605 [inlined]
+ [12] macro expansion
+    @ ./broadcast.jl:968 [inlined]
+ [13] macro expansion
+    @ ./simdloop.jl:77 [inlined]
+ [14] copyto!
+    @ ./broadcast.jl:967 [inlined]
+ [15] copyto!
+    @ ./broadcast.jl:920 [inlined]
+ [16] copy
+    @ ./broadcast.jl:892 [inlined]
+ [17] materialize
+    @ ./broadcast.jl:867 [inlined]
+ [18] broadcast(f::typeof(value), As::Matrix{VariableRef})
+    @ Base.Broadcast ./broadcast.jl:805
+ [19] broadcasted
+    @ ~/.julia/packages/JuMP/i68GU/src/Containers/DenseAxisArray.jl:574 [inlined]
+ [20] broadcasted(::typeof(value), ::JuMP.Containers.DenseAxisArray{VariableRef, 2, Tuple{Vector{String}, UnitRange{Int64}}, Tuple{JuMP.Containers._AxisLookup{Dict{String, Int64}}, JuMP.Containers._AxisLookup{Tuple{Int64, Int64}}}})
+    @ Base.Broadcast ./broadcast.jl:1320
+ [21] save_planning_results(model_data::Tuple{Model, CaseDataPlan})
+    @ Main /orcd/home/002/lauinger/storage-value/code/04_analysis.jl:10
+ [22] main()
+    @ Main /orcd/home/002/lauinger/storage-value/code/07_run_plan.jl:81
+ [23] top-level scope
+    @ /orcd/home/002/lauinger/storage-value/code/07_run_plan.jl:84
+in expression starting at /orcd/home/002/lauinger/storage-value/code/07_run_plan.jl:84
+ 49.983461 seconds (461.01 M allocations: 31.405 GiB, 26.81% gc time, 16.55% compilation time: 4% of which was recompilation)
+ 34.231370 seconds (106.16 M allocations: 6.574 GiB, 14.40% gc time, 2.43% compilation time)
+Set parameter WLSAccessID
+Set parameter WLSSecret
+Set parameter LicenseID to value 2677366
+Academic license 2677366 - for non-commercial use only - registered to la___@mit.edu
+Set parameter MIPGap to value 1e-05
+Set parameter TimeLimit to value 14400
+Set parameter MIPGap to value 1e-05
+Set parameter TimeLimit to value 14400
+Gurobi Optimizer version 12.0.2 build v12.0.2rc0 (linux64 - "Rocky Linux 8.10 (Green Obsidian)")
+
+CPU model: AMD EPYC 9474F 48-Core Processor, instruction set [SSE2|AVX|AVX2|AVX512]
+Thread count: 96 physical cores, 192 logical processors, using up to 32 threads
+
+Non-default parameters:
+TimeLimit  14400
+MIPGap  1e-05
+
+Academic license 2677366 - for non-commercial use only - registered to la___@mit.edu
+Optimize a model with 5941481 rows, 3644524 columns and 17805798 nonzeros
+Model fingerprint: 0xc277d244
+Variable types: 3188926 continuous, 455598 integer (455598 binary)
+Coefficient statistics:
+  Matrix range     [3e-03, 1e+03]
+  Objective range  [2e-01, 7e+06]
+  Bounds range     [9e+00, 1e+02]
+  RHS range        [6e+00, 3e+02]
+Presolve removed 4784732 rows and 2608485 columns
+Presolve time: 4.45s
+Presolved: 1156749 rows, 1036039 columns, 2859378 nonzeros
+Variable types: 1030011 continuous, 6028 integer (5173 binary)
+Performing another presolve...
+Presolve removed 1121975 rows and 999876 columns
+Presolve time: 1.31s
+Performing another presolve...
+Presolve removed 13858 rows and 13114 columns (presolve time = 7s)...
+Presolve removed 13858 rows and 19739 columns (presolve time = 14s)...
+Presolve removed 21249 rows and 19739 columns
+Presolve time: 13.75s
+Found heuristic solution: objective 7.357379e+08
+Found heuristic solution: objective 6.852857e+08
+
+Root simplex log...
+
+Iteration    Objective       Primal Inf.    Dual Inf.      Time
+       0    5.2072557e+08   6.965072e+03   0.000000e+00     28s
+    6410    6.7882103e+08   0.000000e+00   0.000000e+00     28s
+
+Root relaxation: objective 6.788210e+08, 6410 iterations, 0.11 seconds (0.15 work units)
+Total elapsed time = 28.11s (DegenMoves)
+
+    Nodes    |    Current Node    |     Objective Bounds      |     Work
+ Expl Unexpl |  Obj  Depth IntInf | Incumbent    BestBd   Gap | It/Node Time
+
+     0     0 6.7882e+08    0 1561 6.8529e+08 6.7882e+08  0.94%     -   28s
+H    0     0                    6.789733e+08 6.7882e+08  0.02%     -   29s
+H    0     0                    6.788779e+08 6.7882e+08  0.01%     -   29s
+     0     0 6.7884e+08    0 1544 6.7888e+08 6.7884e+08  0.01%     -   33s
+H    0     0                    6.788758e+08 6.7884e+08  0.01%     -   33s
+     0     0 6.7884e+08    0 1608 6.7888e+08 6.7884e+08  0.00%     -   33s
+     0     0 6.7885e+08    0 1646 6.7888e+08 6.7885e+08  0.00%     -   33s
+     0     0 6.7885e+08    0 1625 6.7888e+08 6.7885e+08  0.00%     -   33s
+     0     0 6.7885e+08    0 1613 6.7888e+08 6.7885e+08  0.00%     -   33s
+     0     0 6.7885e+08    0 1632 6.7888e+08 6.7885e+08  0.00%     -   33s
+     0     0 6.7885e+08    0 1572 6.7888e+08 6.7885e+08  0.00%     -   37s
+     0     0 6.7885e+08    0 1552 6.7888e+08 6.7885e+08  0.00%     -   37s
+     0     0 6.7885e+08    0 1473 6.7888e+08 6.7885e+08  0.00%     -   37s
+     0     0 6.7886e+08    0 1477 6.7888e+08 6.7886e+08  0.00%     -   37s
+     0     0 6.7886e+08    0 1485 6.7888e+08 6.7886e+08  0.00%     -   37s
+     0     0 6.7886e+08    0 1505 6.7888e+08 6.7886e+08  0.00%     -   37s
+     0     0 6.7886e+08    0 1518 6.7888e+08 6.7886e+08  0.00%     -   37s
+     0     0 6.7886e+08    0 1396 6.7888e+08 6.7886e+08  0.00%     -   39s
+     0     0 6.7886e+08    0 1497 6.7888e+08 6.7886e+08  0.00%     -   39s
+     0     0 6.7886e+08    0 1413 6.7888e+08 6.7886e+08  0.00%     -   39s
+     0     0 6.7886e+08    0 1410 6.7888e+08 6.7886e+08  0.00%     -   39s
+     0     0 6.7886e+08    0 1367 6.7888e+08 6.7886e+08  0.00%     -   41s
+     0     0 6.7886e+08    0 1342 6.7888e+08 6.7886e+08  0.00%     -   42s
+H    0     0                    6.788758e+08 6.7886e+08  0.00%     -   42s
+H    0     0                    6.788758e+08 6.7886e+08  0.00%     -   44s
+H    0     0                    6.788757e+08 6.7886e+08  0.00%     -   44s
+H    0     0                    6.788752e+08 6.7886e+08  0.00%     -   45s
+H    0     0                    6.788751e+08 6.7886e+08  0.00%     -   46s
+H    0     0                    6.788746e+08 6.7886e+08  0.00%     -   48s
+H    0     0                    6.788743e+08 6.7886e+08  0.00%     -   48s
+H    0     0                    6.788743e+08 6.7886e+08  0.00%     -   52s
+     0     0          -    0      6.7887e+08 6.7887e+08  0.00%     -   52s
+
+Explored 1 nodes (26908 simplex iterations) in 52.78 seconds (59.30 work units)
+Thread count was 32 (of 192 available processors)
+
+Solution count 10: 6.78874e+08 6.78874e+08 6.78875e+08 ... 6.78878e+08
+
+Optimal solution found (tolerance 1.00e-05)
+Best objective 6.788742697102e+08, best bound 6.788681865123e+08, gap 0.0009%
+
+User-callback calls 7419, time in user-callback 0.01 sec
+ 41.016503 seconds (411.36 M allocations: 27.545 GiB, 30.21% gc time, 12.88% compilation time)
+ 74.995541 seconds (99.78 M allocations: 6.432 GiB, 6.07% gc time, 1.13% compilation time)
+Set parameter WLSAccessID
+Set parameter WLSSecret
+Set parameter LicenseID to value 2677366
+Academic license 2677366 - for non-commercial use only - registered to la___@mit.edu
+Set parameter MIPGap to value 1e-05
+Set parameter TimeLimit to value 14400
+Set parameter MIPGap to value 1e-05
+Set parameter TimeLimit to value 14400
+Gurobi Optimizer version 12.0.2 build v12.0.2rc0 (linux64 - "Rocky Linux 8.10 (Green Obsidian)")
+
+CPU model: AMD EPYC 9474F 48-Core Processor, instruction set [SSE2|AVX|AVX2|AVX512]
+Thread count: 96 physical cores, 192 logical processors, using up to 32 threads
+
+Non-default parameters:
+TimeLimit  14400
+MIPGap  1e-05
+
+Academic license 2677366 - for non-commercial use only - registered to la___@mit.edu
+Optimize a model with 5941481 rows, 3644524 columns and 17805798 nonzeros
+Model fingerprint: 0xc277d244
+Variable types: 3188926 continuous, 455598 integer (455598 binary)
+Coefficient statistics:
+  Matrix range     [3e-03, 1e+03]
+  Objective range  [2e-01, 7e+06]
+  Bounds range     [9e+00, 1e+02]
+  RHS range        [6e+00, 3e+02]
+Presolve removed 4784732 rows and 2608485 columns
+Presolve time: 4.40s
+Presolved: 1156749 rows, 1036039 columns, 2859378 nonzeros
+Variable types: 1030011 continuous, 6028 integer (5173 binary)
+Performing another presolve...
+Presolve removed 1121975 rows and 999876 columns
+Presolve time: 1.28s
+Performing another presolve...
+Presolve removed 13858 rows and 13114 columns (presolve time = 7s)...
+Presolve removed 13858 rows and 19739 columns (presolve time = 13s)...
+Presolve removed 21249 rows and 19739 columns
+Presolve time: 13.35s
+Found heuristic solution: objective 7.357379e+08
+Found heuristic solution: objective 6.852857e+08
+
+Root simplex log...
+
+Iteration    Objective       Primal Inf.    Dual Inf.      Time
+       0    5.2072557e+08   6.965072e+03   0.000000e+00     27s
+    6410    6.7882103e+08   0.000000e+00   0.000000e+00     27s
+
+Root relaxation: objective 6.788210e+08, 6410 iterations, 0.11 seconds (0.15 work units)
+Total elapsed time = 27.48s (DegenMoves)
+
+    Nodes    |    Current Node    |     Objective Bounds      |     Work
+ Expl Unexpl |  Obj  Depth IntInf | Incumbent    BestBd   Gap | It/Node Time
+
+     0     0 6.7882e+08    0 1561 6.8529e+08 6.7882e+08  0.94%     -   28s
+H    0     0                    6.789733e+08 6.7882e+08  0.02%     -   28s
+H    0     0                    6.788779e+08 6.7882e+08  0.01%     -   28s
+     0     0 6.7884e+08    0 1544 6.7888e+08 6.7884e+08  0.01%     -   32s
+H    0     0                    6.788758e+08 6.7884e+08  0.01%     -   32s
+     0     0 6.7884e+08    0 1608 6.7888e+08 6.7884e+08  0.00%     -   32s
+     0     0 6.7885e+08    0 1646 6.7888e+08 6.7885e+08  0.00%     -   32s
+     0     0 6.7885e+08    0 1625 6.7888e+08 6.7885e+08  0.00%     -   33s
+     0     0 6.7885e+08    0 1613 6.7888e+08 6.7885e+08  0.00%     -   33s
+     0     0 6.7885e+08    0 1632 6.7888e+08 6.7885e+08  0.00%     -   33s
+     0     0 6.7885e+08    0 1572 6.7888e+08 6.7885e+08  0.00%     -   36s
+     0     0 6.7885e+08    0 1552 6.7888e+08 6.7885e+08  0.00%     -   36s
+     0     0 6.7885e+08    0 1473 6.7888e+08 6.7885e+08  0.00%     -   36s
+     0     0 6.7886e+08    0 1477 6.7888e+08 6.7886e+08  0.00%     -   36s
+     0     0 6.7886e+08    0 1485 6.7888e+08 6.7886e+08  0.00%     -   36s
+     0     0 6.7886e+08    0 1505 6.7888e+08 6.7886e+08  0.00%     -   36s
+     0     0 6.7886e+08    0 1518 6.7888e+08 6.7886e+08  0.00%     -   36s
+     0     0 6.7886e+08    0 1396 6.7888e+08 6.7886e+08  0.00%     -   38s
+     0     0 6.7886e+08    0 1497 6.7888e+08 6.7886e+08  0.00%     -   38s
+     0     0 6.7886e+08    0 1413 6.7888e+08 6.7886e+08  0.00%     -   38s
+     0     0 6.7886e+08    0 1410 6.7888e+08 6.7886e+08  0.00%     -   38s
+     0     0 6.7886e+08    0 1367 6.7888e+08 6.7886e+08  0.00%     -   40s
+     0     0 6.7886e+08    0 1342 6.7888e+08 6.7886e+08  0.00%     -   41s
+H    0     0                    6.788758e+08 6.7886e+08  0.00%     -   42s
+H    0     0                    6.788758e+08 6.7886e+08  0.00%     -   43s
+H    0     0                    6.788757e+08 6.7886e+08  0.00%     -   44s
+H    0     0                    6.788752e+08 6.7886e+08  0.00%     -   45s
+H    0     0                    6.788751e+08 6.7886e+08  0.00%     -   46s
+H    0     0                    6.788746e+08 6.7886e+08  0.00%     -   47s
+H    0     0                    6.788743e+08 6.7886e+08  0.00%     -   48s
+H    0     0                    6.788743e+08 6.7886e+08  0.00%     -   51s
+     0     0          -    0      6.7887e+08 6.7887e+08  0.00%     -   51s
+
+Explored 1 nodes (26908 simplex iterations) in 51.88 seconds (59.30 work units)
+Thread count was 32 (of 192 available processors)
+
+Solution count 10: 6.78874e+08 6.78874e+08 6.78875e+08 ... 6.78878e+08
+
+Optimal solution found (tolerance 1.00e-05)
+Best objective 6.788742697102e+08, best bound 6.788681865123e+08, gap 0.0009%
+
+User-callback calls 7368, time in user-callback 0.01 sec
+ 39.914278 seconds (411.36 M allocations: 27.545 GiB, 30.21% gc time, 13.21% compilation time)
+ 74.407042 seconds (99.78 M allocations: 6.432 GiB, 6.27% gc time, 1.16% compilation time)
