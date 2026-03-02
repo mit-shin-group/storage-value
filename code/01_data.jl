@@ -215,10 +215,8 @@ function build_data_plan(;
         end
         # Create a matrix with default values (e.g. 0.0)
         mw_data = [get(mw_dict, (d, h), 0.0) * file_data["peak load evolution (MW)"][n̲(n, first(N))]/maximum(yearly_data[!, "MW Factor"]) for n in N, d in day_labels, h in K]
-        # pg_data = [get(pg_dict, (d, h), 0.0) for d in day_labels, h in K]
         # Create Containers.DenseAxisArray for ȳℓ and pg
         ȳℓ = Containers.DenseAxisArray(mw_data, N, day_labels, K)
-        # pg = Containers.DenseAxisArray(pg_data, day_labels, K)
         # Operational prices
         ps = Containers.@container([r in R, n in N, d in day_labels, k in K], 
             if r == "g"
