@@ -245,6 +245,47 @@ function build_data_plan(;
                 end
         )
         J = day_labels  # operating superperiods are the days
+    elseif date == "peak"
+        # based on the N days with highest load in the reference year and on load growth projection
+        K = 1:24
+        N_days = 5
+        top_days = sort(combine(groupby(yearly_data, :Day), :"MW Factor" => maximum => :PeakLoad), :PeakLoad, rev=true)[1:N_days, :Day]
+        peak_day = combine(groupby(filter(row -> row.Day in top_days, yearly_data), :Hour), 
+        :"MW Factor" => maximum => :Load,
+        :"Price" => mean => :Price
+        )
+        # linear scaling for load evolution
+        ȳℓ = Containers.@container([n in N, k in K], peak_day[!, :Load][k] * file_data["peak load evolution (MW)"][n̲(n, first(N))]/maximum(peak_day[!, :Load]))
+        # price of grid electricity
+        pg = peak_day[!, :Price]
+        # probability-adjusted peak load days
+        T = Containers.@container([n in N, c in C],
+            if c == 0.
+                (15:40)[n̲(n, first(N))]
+            else
+                (0.2 * (15:40))[n̲(n, first(N))]
+            end
+        )
+        # - overall operational prices
+        ps = Containers.@container([r in R, n in N, k in K], 
+            if r == "g"
+                pg[k] * (1 - discount_rate)^(n - first(N))
+            elseif r == "b"
+                pb[n̲(n, first(N))]
+            else
+                0.
+            end
+        )
+        pd = Containers.@container([r in D, n in N, k in K], 
+            if r == "g"
+                pg[k] * (1 - discount_rate)^(n - first(N))
+            elseif r == "ℓ"
+                pℓ[n̲(n, first(N))]
+            else
+                0.
+            end
+        )
+        J = nothing  # no operating superperiods for peak or year   
     else
         throw(ArgumentError("Invalid date parameter: $date"))
     end
