@@ -8,7 +8,6 @@ N = 2025:2050
 r = 0.0  # - discount rate (-), PNNL assumed 0.0685
 storage_duration = 8
 battery_costs_per_MW = 1000 * storage_duration * [813.32630135, 780.38785301, 762.65176544, 742.38195108, 724.64586351, 706.90977594, 689.17368837, 671.4376008, 651.16778644, 633.43169887, 615.6956113 , 605.56070412, 592.89207014, 582.75716296, 572.62225578, 559.9536218, 549.81871462, 539.68380744, 529.54890026, 516.88026628, 506.7453591 , 496.61045192, 483.94181794, 473.80691076, 463.67200357, 451.0033696] # see notebooks/nrel_battery_costs.ipynb for details
-peak_load_day_2024 = [39.051, 39.051, 35.968, 33.913, 32.885, 32.885, 32.885, 36.996, 42.134, 46.245, 47.273, 48.300, 50.356, 51.383, 52.411, 54.466, 55.494, 58.577, 58.577, 56.522, 54.466, 52.411, 49.328, 46.245]
 peak_load_evolution = [
     62.455,
     63.987,
@@ -125,14 +124,9 @@ end
 # --------------------------
 # construct data dictionary
 data = Dict(
-    "planning periods" => N,
-    "peak load (MW)" => peak_load_evolution/maximum(peak_load_day_2024) .* ones(26, 24) .* peak_load_day_2024',
     "storage existing capacity (MW)" => reshape(vcat(ones(15) * 6, zeros(11)), 1, :),
-    "storage existing units (-)" => 1,
     "grid existing capacity (MW)" => hcat(vcat(ones(12) * 36, zeros(14)), vcat(ones(22)*38, zeros(4)))',
-    "grid existing units (-)" => 2,
     "backup existing capacity (MW)" => reshape(vcat(ones(15) * ctg_max_output(diesel_operating_temperature), zeros(11)), 1, :),
-    "backup existing units (-)" => 1,
     "backup capital cost (\$/MW)" => 1e6 * adjust_investment_cost(35.6/68.6 * 81/ctg_max_output(diesel_operating_temperature) * consumer_price_index["2025"]/consumer_price_index["2019"] * ones(26), backup_lifetime, r, true), # see nrel_battery_costs.ipynb for details
     "storage capital cost (\$/MW)" => adjust_investment_cost(battery_costs_per_MW, storage_lifetime, r, true),
     "grid capital cost (\$/MW)" => 1e6 * adjust_investment_cost(5 * consumer_price_index["2025"]/consumer_price_index["2019"] * ones(26), grid_lifetime, r, true), # a 40MW line would have cost $200 million in 2019, see Nantucket press release
@@ -151,11 +145,8 @@ data = Dict(
     "backup min. investment (MW)" => 2.,
     "backup max. investment (MW)" => 30.,
     "backup electricity price (\$/MWh)" => (1000 * price_per_l / diesel_LHV * turbine_heat_rate) .* (1 - r).^(0:(length(N)-1)),
-    "electricity peak load price (\$/MWh)" => [62.31, 71.83, 48.56, 35.36, 30.38, 32.18, 34.61, 40.13, 32.08, 29.59, 35.10, 45.30, 49.03, 46.26, 57.91, 64.44, 107.19, 65.80, 86.22, 54.13, 94.15, 47.81, 41.72, 46.61] .* (1 - r).^(0:(length(N)-1))',
-    "probability-adjusted peak load days (-)" => ones(26,2) .* [30 1],
     "discount rate (-)" => r,
     "peak load evolution (MW)" => peak_load_evolution,
-    "storage max. cycles per year (-)" => 150.,
     "capacity price (\$/MW-year)" => capacity_price
 )
 
