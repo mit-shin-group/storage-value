@@ -1,7 +1,6 @@
 using JSON3
 
-# --------------------------
-# specify data and functions to construct the data dictionary
+# Specify data and functions to construct a data dictionary that is used to populate the CaseDataPlan data structure.
 # for investment costs (https://www.rateinflation.com/consumer-price-index/usa-historical-cpi/)
 consumer_price_index = Dict("2025" => 323.048, "2022" => 292.655, "2020" => 258.811, "2019" => 255.657, "2018" => 251.107) 
 N = 2025:2050
