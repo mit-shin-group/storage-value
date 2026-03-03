@@ -158,7 +158,7 @@ function build_data_plan(;
         elseif r == "g"
             file_data["grid capital cost (\$/MW)"][n̲(n, first(N))]
         else
-            free_storage ? 8000 : file_data["storage capital cost (\$/MW)"][n̲(n, first(N))]
+            free_storage ? file_data["free storage capital cost (\$/MW)"] : file_data["storage capital cost (\$/MW)"][n̲(n, first(N))]
         end
     )
     p0 = Containers.@container([r in R, n in N], 0)
@@ -239,9 +239,9 @@ function build_data_plan(;
         # base and contingency probabilities
         T = total_groups/length(day_labels) .* Containers.@container([n in N, d in day_labels, c in C],
                 if c == 0.
-                    0.8
+                    1 - file_data["contingency probability (-)"]
                 else
-                    0.2
+                    file_data["contingency probability (-)"]
                 end
         )
         J = day_labels  # operating superperiods are the days
@@ -261,9 +261,9 @@ function build_data_plan(;
         # probability-adjusted peak load days
         T = Containers.@container([n in N, c in C],
             if c == 0.
-                (15:40)[n̲(n, first(N))]
+                ((1 - file_data["contingency probability (-)"]) * (15:40))[n̲(n, first(N))]
             else
-                (0.2 * (15:40))[n̲(n, first(N))]
+                (file_data["contingency probability (-)"] * (15:40))[n̲(n, first(N))]
             end
         )
         # - overall operational prices

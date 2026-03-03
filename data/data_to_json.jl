@@ -129,6 +129,7 @@ data = Dict(
     "backup existing capacity (MW)" => reshape(vcat(ones(15) * ctg_max_output(diesel_operating_temperature), zeros(11)), 1, :),
     "backup capital cost (\$/MW)" => 1e6 * adjust_investment_cost(35.6/68.6 * 81/ctg_max_output(diesel_operating_temperature) * consumer_price_index["2025"]/consumer_price_index["2019"] * ones(26), backup_lifetime, r, true), # see nrel_battery_costs.ipynb for details
     "storage capital cost (\$/MW)" => adjust_investment_cost(battery_costs_per_MW, storage_lifetime, r, true),
+    "free storage capital cost (\$/MW)" => 8000,
     "grid capital cost (\$/MW)" => 1e6 * adjust_investment_cost(5 * consumer_price_index["2025"]/consumer_price_index["2019"] * ones(26), grid_lifetime, r, true), # a 40MW line would have cost $200 million in 2019, see Nantucket press release
     "time discretization (h)" => 1.,
     "value of lost load (\$/MWh)" => 9337 .* (1 - r).^(0:(length(N)-1)), # does not matter if load shedding is disallowed, none of our experiments allow for it
@@ -147,7 +148,8 @@ data = Dict(
     "backup electricity price (\$/MWh)" => (1000 * price_per_l / diesel_LHV * turbine_heat_rate) .* (1 - r).^(0:(length(N)-1)),
     "discount rate (-)" => r,
     "peak load evolution (MW)" => peak_load_evolution,
-    "capacity price (\$/MW-year)" => capacity_price
+    "capacity price (\$/MW-year)" => capacity_price,
+    "contingency probability (-)" => 0.2,
 )
 
 # write to JSON
