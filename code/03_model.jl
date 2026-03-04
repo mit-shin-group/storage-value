@@ -1,6 +1,5 @@
 using JuMP, Gurobi, Setfield
 include("01_data.jl")
-include("02_peak_shaving_potential.jl")
 
 function build_model(case_data::CaseDataPlan; env::Gurobi.Env = Gurobi.Env())
     # unpack important data
