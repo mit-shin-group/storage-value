@@ -82,7 +82,7 @@ nodalloadweights_4006_202412.csv
 ```
 These files are available from the [ISO New England](https://www.iso-ne.com/isoexpress/web/reports/load-and-demand/-/tree/network-nodel).
 
-The data is analyzed in `data_analysis_2024.ipynb` and used to create Figure 2 and the data file `Nantucket_2024.csv`, which is by `code/01_data.jl` when populating the data structure for the investment planning problem.
+The data is analyzed in `data_analysis_2024.ipynb` and used to create Figure 2 and the data file `Nantucket_2024.csv`, which is used by `code/01_data.jl` when populating the data structure for the investment planning problem.
 
 ### US Installed Generation Capacity
 `eia-860/` contains
