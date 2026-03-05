@@ -35,7 +35,7 @@ instantiate
 
 ### Hardware Setup
 
-All numerical experiments were conducted on AMD EPYC 9474F CPUs with 48 cores, a 3.6GHz base clock, and 376GB of RAM. On this hardware, running all nine experiments in Table C1 sequentially took about 18 hours. 
+All numerical experiments were conducted on AMD EPYC 9474F CPUs with 48 cores, a 3.6GHz base clock, and 376GB of RAM. On this hardware, running all nine experiments in Table C1 sequentially took 18 hours. 
 
 ### Running the Experiments
 
