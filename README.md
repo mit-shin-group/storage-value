@@ -116,4 +116,4 @@ The folder `results/` contains outputs from numerical experiments:
 - `potential.txt` shows the maximum peak shaving potential and the battery power and energy capacity required to achieve that potential for various roundtrip efficiencies in the Nantucket case study. This data is used to generate Figure A3.
 
 ## Version
-Release `v0.1.0-submission` is the version of the repository used in the inital submission of the paper for peer-review.
+Release `v0.1.0-submission` is the version of the repository used in the inital submission of the paper for peer review.
