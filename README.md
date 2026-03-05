@@ -20,39 +20,97 @@ The numerical experiments were implemented using:
 - JuMP 1.23.5  
 - Gurobi 12.0.2  
 
-A valid Gurobi license is required to run the optimization model.
+A valid Gurobi license is required to run the optimization model. To install Julia dependencies, run this command in bash
+
+```bash
+sh start_julia.sh
+```
+
+followed by this command in Julia
+
+```julia
+]
+instantiate
+```
 
 ### Hardware Setup
 
 All numerical experiments were conducted on AMD EPYC 9474F CPUs with 48 cores, a 3.6GHz base clock, and 376GB of RAM. On this hardware, running all nine experiments in Table C1 sequentially took about 18 hours. 
 
+### Running the Experiments
 
-The folder `code` contains:
-- `01_data.jl`, which is used to generate and populate a data structure for the investment planning optimization problem (B1);
-- `02_peak_shaving_potential.jl`, which is used for generating the data underlying Figure A3 and can be used to determine the upper bound $\bar x_\mathrm{s}$ on storage investment levels;
-- `03_model.jl`, which is a numerical implementation of problem (B1);
-- `04_analysis.jl`, which is used to analyze the results of the numerical experiments and compile Table C1, generate the data underlying Figures 5, 6, and C1, and to generate Figure C1;
-- `05_run_plan.jl`, which is used to run an instance of the planning problem specified by command line arguments;
-- `05_run_plan.sh`, which is used to run `05_run_plan.jl`;
-- `06_run_analysis_experiment.jl`, which is used to run `04_analysis.jl` with a command line argument;
-- `06_run_analysis_experiment.sh`, which is used to run `06_run_analysis_experiment.jl`;
-- `ex1.sh` ... `ex9.sh`, which are used to run the numerical experiments in Table C1.
+Run the experiments as follows:
 
-The folder `data` contains:
-- `eia-860/`, which contains the file `december_generator2025.xlsx`, available from the [Preliminary Monthly Electric Generator Inventory](https://www.eia.gov/electricity/data/eia860m/) by the US Energy Information Administration;
-- `ISONE_data/`, which contains the files `nodalloadweights_4006_202401.csv` ... `nodalloadweights_4006_202412.csv`, available from the [ISO New England](https://www.iso-ne.com/isoexpress/web/reports/load-and-demand/-/tree/network-nodel);
-- `nrel_battery_cost/`, which contains the files `2019.txt` ... `2025.txt`, each representing NREL cost projections on utility-scale battery storage. The 2025 projections are available at [https://docs.nrel.gov/docs/fy25osti/93281.pdf](https://docs.nrel.gov/docs/fy25osti/93281.pdf);
-- `data_analysis_2024.ipynb`, which analyzes electricity price and demand data from `ISONE_data/` and is used to create Figure 2 and the data file `Nantucket_2024.csv`. This file is read by `code/01_data.jl` when populating the data structure for the investment planning problem;
-- `data_to_json.jl`, which is used to build the data file `nantucket.json` for the numerical case study. This file is also read by `code/01_data.jl` when populating the data structure for the investment planning problem;
-- `nrel_battery_costs.ipynb`, which reads the data in `nrel_battery_cost/` to create Figure A1;
-- `storage_eia860.ipynb`, which reads the data in `eia-860/` to compute the numbers on installed US battery storage in Section A.1 of the paper.
+```bash
+sh code/ex1.sh
+...
+sh code/ex9.sh
+```
 
-The folder `pics` contains:
-- `battery_cost.pdf` and `battery_cost.svg`, which correspond to Figure A1.
-- `heatmap.pdf`, which corresponds to Figure 6;
-- `load_24.pdf`, `load_24.svg`, `price_24.pdf`, and `price_24.svg` which correspond to Figure 2.
+Results are written to `results/experiments/`.
 
-The folder `results` contains:
-- `experiments/`, which contains the `.jld` and `.log` files for each of the nine numerical experiments;
-- `planning/`, which is empty and used by default to log results that do not correspond to one of the nine experiments;
-- `potential.txt`, which shows the maximum peak shaving potential and the battery power and energy capacity required to achieve that potential for various roundtrip efficiencies in the Nantucket case study. This data is used to generate Figure A3.
+### Analyzing the Results
+Obtain the data in Table C1 for each experiment by running:
+```bash
+sh code/06_run_analysis_experiment.sh ex1
+...
+sh code/06_run_analysis_experiment.sh ex9
+```
+
+## Code Description
+
+The folder `code/` contains:
+- `01_data.jl`: Generates and populates a data structure for the investment planning optimization problem (B1);
+- `02_peak_shaving_potential.jl`: Generates the data underlying Figure A3 and can be used to determine the upper bound $\bar x_\mathrm{s}$ on storage investment levels;
+- `03_model.jl`: Numerical implementation of problem (B1);
+- `04_analysis.jl`: Analyzes the results of the numerical experiments and compiles Table C1, generates the data underlying Figures 5, 6, and C1, and generates Figure C1;
+- `05_run_plan.jl`: Runs an instance of the planning problem specified by command line arguments;
+- `05_run_plan.sh`: Runs `05_run_plan.jl`;
+- `06_run_analysis_experiment.jl`: Runs `04_analysis.jl` with a command line argument;
+- `06_run_analysis_experiment.sh`: Runs `06_run_analysis_experiment.jl`;
+- `ex1.sh` ... `ex9.sh`: Run the numerical experiments in Table C1.
+
+## Data Description
+The folder `data/` contains all datasets used in the numerical experiments.
+
+### Nantucket Electricity Demand and Prices
+`ISONE_data/` contains
+```
+nodalloadweights_4006_202401.csv
+...
+nodalloadweights_4006_202412.csv
+```
+These files are available from the [ISO New England](https://www.iso-ne.com/isoexpress/web/reports/load-and-demand/-/tree/network-nodel).
+
+The data is analyzed in `data_analysis_2024.ipynb` and used to create Figure 2 and the data file `Nantucket_2024.csv`, which is by `code/01_data.jl` when populating the data structure for the investment planning problem.
+
+### US Installed Generation Capacity
+`eia-860/` contains
+```
+december_generator2025.xlsx
+```
+This file is available from the [Preliminary Monthly Electric Generator Inventory](https://www.eia.gov/electricity/data/eia860m/) by the US Energy Information Administration and analyzed in `storage_eia860.ipynb` to compute the numbers on installed US battery storage in Section A.1 of the paper.
+
+### Battery Cost Projections
+`nrel_battery_cost/` contains
+```
+2019.txt
+...
+2025.txt
+```
+These files represent NREL cost projections on utility-scale battery storage. The 2025 projections are available at [https://docs.nrel.gov/docs/fy25osti/93281.pdf](https://docs.nrel.gov/docs/fy25osti/93281.pdf). The data is analyzed in `nrel_battery_costs.ipynb` to create Figure A1.
+
+### Other Data
+`data_to_json.jl` builds the data file `nantucket.json` for the numerical case study. This file is read by `code/01_data.jl` when populating the data structure for the investment planning problem.
+
+## Figures
+The folder `pics/` contains figures reproduced in the paper:
+- `battery_cost.pdf` and `battery_cost.svg` for Figure A1;
+- `heatmap.pdf` for Figure 6;
+- `load_24.pdf`, `load_24.svg`, `price_24.pdf`, and `price_24.svg` for Figure 2.
+
+## Results
+The folder `results/` contains outputs from numerical experiments:
+- `experiments/` contains `.jld` and `.log` files for each of the nine numerical experiments;
+- `planning/` is empty and used by default to log results that do not correspond to any of the nine experiments;
+- `potential.txt` shows the maximum peak shaving potential and the battery power and energy capacity required to achieve that potential for various roundtrip efficiencies in the Nantucket case study. This data is used to generate Figure A3.
