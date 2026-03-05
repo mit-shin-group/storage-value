@@ -114,3 +114,6 @@ The folder `results/` contains outputs from numerical experiments:
 - `experiments/` contains `.jld` and `.log` files for each of the nine numerical experiments;
 - `planning/` is empty and used by default to log results that do not correspond to any of the nine experiments;
 - `potential.txt` shows the maximum peak shaving potential and the battery power and energy capacity required to achieve that potential for various roundtrip efficiencies in the Nantucket case study. This data is used to generate Figure A3.
+
+## Version
+Release `v0.1.0-submission` is the version of the repository used in the inital submission of the paper for peer-review.
