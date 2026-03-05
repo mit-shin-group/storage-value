@@ -1,6 +1,31 @@
 # The Value of Storage in Electricity Distribution: The Role of Markets
 
-This repository supplements the paper "The value of storage in electricity distribution: The role of markets" by [Dirk Lauinger](https://www.dirklauinger.com/), [Deepjyoti Deka](https://deepjyotideka.github.io/), and [Sungho Shin](https://shin.mit.edu/), available at [https://arxiv.org/abs/2510.12435](https://arxiv.org/abs/2510.12435). This project was funded by the [Future Energy Systems Center](https://energy.mit.edu/futureenergysystemscenter/) at the MIT Energy Initiative.
+This repository supplements the paper **"The value of storage in electricity distribution: The role of markets"** by [Dirk Lauinger](https://www.dirklauinger.com/), [Deepjyoti Deka](https://deepjyotideka.github.io/), and [Sungho Shin](https://shin.mit.edu/), available at [https://arxiv.org/abs/2510.12435](https://arxiv.org/abs/2510.12435), and funded by the [Future Energy Systems Center](https://energy.mit.edu/futureenergysystemscenter/) at the MIT Energy Initiative.
+
+## Repository Structure
+
+The repository is organized as follows:
+- `code/` Data structure, optimization model, and experiment scripts;
+- `data/` Input data and preprocessing scripts;
+- `pics/` Figures reproduced in the paper;
+- `results/` Output files from numerical experiments.
+
+## Reproducing the Numerical Experiments
+
+### Software Requirements
+
+The numerical experiments were implemented using:
+
+- Julia 1.11.2  
+- JuMP 1.23.5  
+- Gurobi 12.0.2  
+
+A valid Gurobi license is required to run the optimization model.
+
+### Hardware Setup
+
+All numerical experiments were conducted on AMD EPYC 9474F CPUs with 48 cores, a 3.6GHz base clock, and 376GB of RAM. On this hardware, running all nine experiments in Table C1 sequentially took about 18 hours. 
+
 
 The folder `code` contains:
 - `01_data.jl`, which is used to generate and populate a data structure for the investment planning optimization problem (B1);
@@ -31,5 +56,3 @@ The folder `results` contains:
 - `experiments/`, which contains the `.jld` and `.log` files for each of the nine numerical experiments;
 - `planning/`, which is empty and used by default to log results that do not correspond to one of the nine experiments;
 - `potential.txt`, which shows the maximum peak shaving potential and the battery power and energy capacity required to achieve that potential for various roundtrip efficiencies in the Nantucket case study. This data is used to generate Figure A3.
-
-All numerical experiments were conducted on AMD EPYC 9474F CPUs with 48 cores, a 3.6GHz base clock, and 376GB of RAM. The experiments were implemented in Julia 1.11.2 using JuMP 1.23.5 with Gurobi 12.0.2.
