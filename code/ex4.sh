@@ -1,1 +1,1 @@
-sbatch code/05_run_plan.sh --dates all --market full --cycles 150. --shed false --stride 1 --new_backup false --mipgap 0.00001 --new_storage true --capacity_payment true --experiment 4
+bash code/05_run_plan.sh --dates all --market full --cycles 150. --shed false --stride 1 --new_backup false --mipgap 0.00001 --new_storage true --capacity_payment true --experiment 4
